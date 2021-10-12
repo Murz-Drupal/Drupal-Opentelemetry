@@ -1,0 +1,4 @@
+services:
+  opentelemetry:
+    class: Drupal\opentelemetry\OpenTelemetry
+    arguments: ["@request_stack"]
