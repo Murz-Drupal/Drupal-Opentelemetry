@@ -16,11 +16,11 @@ use OpenTelemetry\Sdk\Trace\TracerProvider;
 use OpenTelemetry\Trace as API;
 
 /**
- * Class OpenTelemetry
+ * Class OpenTelemetryService
  *
  * @package Drupal\opentelemetry
  */
-class OpenTelemetry {
+class OpenTelemetryService {
   public $sampler;
   public $samplingResult;
   public $exporter;
