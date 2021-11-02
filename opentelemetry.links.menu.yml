@@ -1,4 +1,4 @@
-overpass_api.settings_form:
+opentelemetry.settings_form:
   title: OpenTelemetry
   description: Configure OpenTelemetry service.
   parent: system.admin_config_development
