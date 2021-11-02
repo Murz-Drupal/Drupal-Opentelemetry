@@ -1,0 +1,6 @@
+overpass_api.settings_form:
+  title: OpenTelemetry
+  description: Configure OpenTelemetry service.
+  parent: system.admin_config_development
+  route_name: opentelemetry.settings_form
+  weight: 10

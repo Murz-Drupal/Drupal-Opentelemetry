@@ -7,11 +7,16 @@
         "open-telemetry/opentelemetry": "^0.0.3",
         "php-http/guzzle6-adapter": "^2.0"
     },
-    "license": "GPL2+",
     "authors": [
         {
             "name": "Alexey Murz Korepov",
             "email": "MurzNN@gmail.com"
         }
-    ]
+    ],
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/opentelemetry",
+        "source": "https://git.drupalcode.org/project/opentelemetry"
+    },
+    "license": "GPL-2.0-or-later",
+    "minimum-stability": "dev"
 }

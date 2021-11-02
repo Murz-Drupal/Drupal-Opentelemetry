@@ -1,0 +1,7 @@
+opentelemetry.settings_form:
+  path: "/admin/config/development/opentelemetry"
+  defaults:
+    _title: "OpenTelemetry settings"
+    _form: 'Drupal\opentelemetry\Form\SettingsForm'
+  requirements:
+    _permission: "administer site configuration"

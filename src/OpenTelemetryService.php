@@ -1,6 +1,8 @@
 <?php
 namespace Drupal\opentelemetry;
 
+use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\Http\RequestStack;
 use Http\Adapter\Guzzle6\Client;
 use Http\Factory\Guzzle\RequestFactory;
 use Http\Factory\Guzzle\StreamFactory;
@@ -16,19 +18,26 @@ use OpenTelemetry\Sdk\Trace\TracerProvider;
 use OpenTelemetry\Trace as API;
 
 /**
- * Class OpenTelemetryService
+ * Class OpenTelemetryService.
  *
  * @package Drupal\opentelemetry
  */
 class OpenTelemetryService {
-  public $sampler;
-  public $samplingResult;
-  public $exporter;
-  public $endpoint;
+  protected $sampler;
+  protected $samplingResult;
+  protected $exporter;
+  protected $endpoint;
 
-  public function __construct() {
-
-    $this->endpoint = $_ENV['OPENTELEMETRY_ENDPOINT'] ?? 'http://localhost:9411/api/v2/spans';
+  /**
+   * Constructs a new OpenTelemetry service.
+   *
+   * @param Drupal\Core\Config\ConfigFactory $configFactory
+   *   Drupal logger.
+   * @param Drupal\Core\Http\RequestStack $requestStack
+   *   Client for making HTTP Calls.
+   */
+  public function __construct(ConfigFactory $configFactory, RequestStack $requestStack) {
+    $this->endpoint = $configFactory->get('opentelemetry.settings')->get('endpoint', 'http://localhost:9411/api/v2/spans');
 
     $this->sampler = new AlwaysOnSampler();
 
@@ -37,7 +46,7 @@ class OpenTelemetryService {
     $this->samplingResult = $this->sampler->shouldSample(
         Context::getCurrent(),
         $samplerUniqueId,
-        'io.opentelemetry.example',
+        'io.opentelemetry.drupal',
         API\SpanKind::KIND_INTERNAL
     );
 
