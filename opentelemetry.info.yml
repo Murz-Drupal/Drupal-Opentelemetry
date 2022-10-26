@@ -1,5 +1,5 @@
 name: 'OpenTelemetry'
 type: module
 description: 'Provide OpenTelemetry service, based on opentelemetry-php library'
-core_version_requirement: ^8.7.7 || ^9
+core_version_requirement: ^8.7.7 || ^9 || ^10
 package: 'Custom'
