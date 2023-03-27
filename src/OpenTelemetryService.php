@@ -1,69 +1,76 @@
 <?php
+
 namespace Drupal\opentelemetry;
 
 use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Http\RequestStack;
-use Http\Adapter\Guzzle6\Client;
-use Http\Factory\Guzzle\RequestFactory;
-use Http\Factory\Guzzle\StreamFactory;
-
-use OpenTelemetry\Context\Context;
-use OpenTelemetry\Contrib\Jaeger\Exporter as JaegerExporter;
-use OpenTelemetry\Sdk\Trace\Attributes;
-use OpenTelemetry\Sdk\Trace\Clock;
-use OpenTelemetry\Sdk\Trace\Sampler\AlwaysOnSampler;
-use OpenTelemetry\Sdk\Trace\SamplingResult;
-use OpenTelemetry\Sdk\Trace\SpanProcessor\BatchSpanProcessor;
-use OpenTelemetry\Sdk\Trace\TracerProvider;
-use OpenTelemetry\Trace as API;
+use OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory;
+use OpenTelemetry\Contrib\Otlp\SpanExporter;
+use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
+use OpenTelemetry\SDK\Trace\TracerProvider;
 
 /**
- * Class OpenTelemetryService.
+ * Default OpenTelemetry service.
  *
  * @package Drupal\opentelemetry
  */
-class OpenTelemetryService {
-  protected $sampler;
-  protected $samplingResult;
-  protected $exporter;
-  protected $endpoint;
+class OpenTelemetryService implements OpenTelemetryServiceInterface {
+
+
+  /**
+   * A configuration key to use for settings.
+   *
+   * @var string
+   */
+  const SETTINGS_KEY = 'opentelemetry.settings';
+
+  /**
+   * A default name for root span to use.
+   *
+   * @var string
+   */
+  const ROOT_SPAN_DEFAULT_NAME = 'Drupal Request';
 
   /**
    * Constructs a new OpenTelemetry service.
    *
    * @param Drupal\Core\Config\ConfigFactory $configFactory
-   *   Drupal logger.
-   * @param Drupal\Core\Http\RequestStack $requestStack
-   *   Client for making HTTP Calls.
+   *   A config factory.
    */
-  public function __construct(ConfigFactory $configFactory, RequestStack $requestStack) {
-    $this->endpoint = $configFactory->get('opentelemetry.settings')->get('endpoint', 'http://localhost:9411/api/v2/spans');
+  public function __construct(
+    protected ConfigFactory $configFactory,
+  ) {
+    $this->settings = $this->configFactory->get(self::SETTINGS_KEY);
 
-    $this->sampler = new AlwaysOnSampler();
+    // @todo Add support for other factories.
+    $this->transportFactory = new OtlpHttpTransportFactory();
 
-    $samplerUniqueId = md5((string) microtime(true));
+    $this->endpoint = $this->settings->get('endpoint', 'http://localhost:4318/v1/traces');
 
-    $this->samplingResult = $this->sampler->shouldSample(
-        Context::getCurrent(),
-        $samplerUniqueId,
-        'io.opentelemetry.drupal',
-        API\SpanKind::KIND_INTERNAL
+    $contentType = 'application/x-protobuf';
+    $this->transport = $this->transportFactory->create($this->endpoint, $contentType);
+
+    $this->exporter = new SpanExporter($this->transport);
+
+    $this->tracerProvider = new TracerProvider(
+      new SimpleSpanProcessor(
+        $this->exporter
+      )
     );
-
-    $serviceName = "Drupal";
-    $this->exporter = new JaegerExporter(
-        $serviceName,
-        $this->endpoint,
-        new Client(),
-        new RequestFactory(),
-        new StreamFactory()
-    );
+    $this->tracer = $this->tracerProvider->getTracer('io.opentelemetry.contrib.php');
   }
 
-  public function createTracer() {
-    $tracer = (new TracerProvider())
-      ->addSpanProcessor(new BatchSpanProcessor($this->exporter, Clock::get()))
-      ->getTracer('io.opentelemetry.contrib.php');
-    return $tracer;
+  /**
+   * {@inheritdoc}
+   */
+  public function getTracer(): TracerInterface {
+    return $this->tracer;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRootSpanName(): string {
+    return $this->settings->get('root_span_name', self::ROOT_SPAN_DEFAULT_NAME) ?: self::ROOT_SPAN_DEFAULT_NAME;
+  }
+
 }

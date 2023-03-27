@@ -1,11 +1,10 @@
 {
     "name": "drupal/opentelemetry",
-    "description": "Provide OpenTelemetry service, based on opentelemetry-php library",
+    "description": "Provides OpenTelemetry service, based on opentelemetry-php library.",
     "type": "drupal-module",
     "require": {
-        "http-interop/http-factory-guzzle": "^1.2",
-        "open-telemetry/opentelemetry": "^0.0.3",
-        "php-http/guzzle6-adapter": "^2.0"
+        "open-telemetry/sdk": "^1.0.0beta5",
+        "open-telemetry/exporter-otlp": "^1.0.0beta3"
     },
     "authors": [
         {

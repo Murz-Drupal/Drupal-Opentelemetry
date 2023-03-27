@@ -1,4 +1,12 @@
 services:
   opentelemetry:
     class: Drupal\opentelemetry\OpenTelemetryService
-    arguments: ["@config.factory", "@request_stack"]
+    arguments:
+      - '@config.factory'
+      - '@request_stack'
+
+  Drupal\opentelemetry\EventSubscriber\OpenTelemetryEventSubscriber:
+    arguments:
+      - '@opentelemetry'
+    tags:
+        - { name: event_subscriber }
