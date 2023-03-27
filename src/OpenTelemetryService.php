@@ -3,6 +3,7 @@
 namespace Drupal\opentelemetry;
 
 use Drupal\Core\Config\ConfigFactory;
+use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory;
 use OpenTelemetry\Contrib\Otlp\SpanExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
