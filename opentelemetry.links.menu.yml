@@ -1,6 +1,6 @@
-opentelemetry.settings_form:
+opentelemetry.settings:
   title: OpenTelemetry
   description: Configure OpenTelemetry settings.
   parent: system.admin_config_development
-  route_name: opentelemetry.settings_form
+  route_name: opentelemetry.settings
   weight: 10

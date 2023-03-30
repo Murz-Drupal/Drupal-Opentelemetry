@@ -1,12 +1,23 @@
 services:
-  opentelemetry:
-    class: Drupal\opentelemetry\OpenTelemetryService
+  opentelemetry.tracer:
+    class: Drupal\opentelemetry\OpenTelemetryTracerService
     arguments:
       - '@config.factory'
-      - '@request_stack'
+      - '@logger.factory'
 
-  Drupal\opentelemetry\EventSubscriber\OpenTelemetryEventSubscriber:
+  plugin.manager.open_telemetry_span:
+    class: Drupal\opentelemetry\OpenTelemetryTraceManager
+    parent: default_plugin_manager
+
+  Drupal\opentelemetry\EventSubscriber\RequestTraceEventSubscriber:
     arguments:
-      - '@opentelemetry'
+      - '@opentelemetry.tracer'
+      - '@messenger'
+    tags:
+        - { name: event_subscriber }
+
+  Drupal\opentelemetry\EventSubscriber\DatabaseStatementTraceEventSubscriber:
+    arguments:
+      - '@opentelemetry.tracer'
     tags:
         - { name: event_subscriber }

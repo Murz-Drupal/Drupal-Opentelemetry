@@ -4,12 +4,29 @@ namespace Drupal\opentelemetry\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\opentelemetry\OpenTelemetryService;
+use Drupal\opentelemetry\OpenTelemetryTracerService;
+use Drupal\opentelemetry\OpenTelemetryTracerServiceInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configure opentelemetry settings for this site.
  */
 class SettingsForm extends ConfigFormBase {
+
+  public function __construct(
+    protected OpenTelemetryTracerServiceInterface $openTelemetryTracer,
+  ) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    // Instantiates this form class.
+    return new static(
+      $container->get('opentelemetry.tracer'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -22,30 +39,65 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
-    return [OpenTelemetryService::SETTINGS_KEY];
+    return [OpenTelemetryTracerService::SETTINGS_KEY];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $settings = $this->config(OpenTelemetryService::SETTINGS_KEY);
-    $form['endpoint'] = [
-      '#type' => 'textfield',
+    $spanForm = $this->openTelemetryTracer->getTracer()->spanBuilder('OpenTelemetry settings form')->startSpan();
+    $settings = $this->config(OpenTelemetryTracerService::SETTINGS_KEY);
+    $form[OpenTelemetryTracerService::SETTING_ENDPOINT] = [
+      '#type' => 'url',
       '#title' => $this->t('OpenTelemetry endpoint'),
-      '#description' => $this->t('URL to OpenTelemetry endpoint.<br/>Example for local Grafana Tempo instance: <code>http://localhost:9411/api/v2/spans</code>'),
-      '#default_value' => $settings->get('endpoint', 'http://localhost:9411/api/v2/spans'),
+      '#description' => $this->t('URL to OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>http://localhost:9411/api/v2/spans</code>'),
+      '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ENDPOINT),
+      '#required' => TRUE,
     ];
-    $form['root_span_name'] = [
+    $form[OpenTelemetryTracerService::SETTING_DEBUG_MODE] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Debug mode'),
+      '#description' => $this->t('Enables debug mode which outputs trace ids and span ids to the Drupal messenger.'),
+      '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_DEBUG_MODE),
+    ];
+    $form[OpenTelemetryTracerService::SETTING_SERVICE_NAME] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Root span name'),
-      '#description' => $this->t('Allows setting a custom name for the root span. If empty, uses default value: @value', [
-        '@value' => OpenTelemetryService::ROOT_SPAN_DEFAULT_NAME,
-      ]),
-      '#default_value' => $settings->get('root_span_name'),
+      '#title' => $this->t('Resource name'),
+      '#description' => $this->t('A name to use for the telemetry resource, eg "Drupal".'),
+      '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_SERVICE_NAME),
+      '#required' => TRUE,
     ];
-
-    return parent::buildForm($form, $form_state);
+    $form[OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Root Span name'),
+      '#description' => $this->t('Allows setting a custom name for the root span, eg "root".'),
+      '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME),
+      '#required' => TRUE,
+    ];
+    $spanPluginService = \Drupal::service('plugin.manager.open_telemetry_span');
+    if ($spanPlugins = $spanPluginService->getDefinitions()) {
+      $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS] = [
+        '#type' => 'checkboxes',
+        '#title' => 'Enabled trace plugins',
+        '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS),
+        '#options' => [],
+      ];
+      foreach ($spanPlugins as $definition) {
+        $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS]['#options'][$definition['id']] = $definition['label'];
+        $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS][$definition['id']]['#description'] = $definition['description'];
+        $instance = $spanPluginService->createInstance($definition['id']);
+        if (!$instance->isAvailable()) {
+          $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS][$definition['id']]['#disabled'] = TRUE;
+          $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS][$definition['id']]['#description'] .= '<br/>' . $this->t('Reason for unavailability: @reason', ['@reason' => $instance->getUnavailableReason()]);
+        }
+      }
+    }
+    $spanParentForm = $this->openTelemetryTracer->getTracer()->spanBuilder('parent buildForm')->startSpan();
+    $form = parent::buildForm($form, $form_state);
+    $spanParentForm->end();
+    $spanForm->end();
+    return $form;
   }
 
   /**
@@ -59,10 +111,12 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->config(OpenTelemetryService::SETTINGS_KEY)
-      ->set('endpoint', $form_state->getValue('endpoint'))
-      ->set('transport', $form_state->getValue('transport'))
-      ->set('root_span_name', $form_state->getValue('root_span_name') ?: NULL)
+    $this->config(OpenTelemetryTracerService::SETTINGS_KEY)
+      ->set(OpenTelemetryTracerService::SETTING_ENDPOINT, $form_state->getValue(OpenTelemetryTracerService::SETTING_ENDPOINT))
+      ->set(OpenTelemetryTracerService::SETTING_DEBUG_MODE, $form_state->getValue(OpenTelemetryTracerService::SETTING_DEBUG_MODE))
+      ->set(OpenTelemetryTracerService::SETTING_SERVICE_NAME, $form_state->getValue(OpenTelemetryTracerService::SETTING_SERVICE_NAME))
+      ->set(OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME, $form_state->getValue(OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME))
+      ->set(OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS, $form_state->getValue(OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS))
       ->save();
     parent::submitForm($form, $form_state);
   }
