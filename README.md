@@ -8,6 +8,7 @@ but also detailed information about internal processes like time spent on
 preparing the Request, SQL  queries, etc.
 
 ### Usage example in your custom code:
+
 ```php
 $this->openTelemetryTracer = \Drupal::service('opentelemetry.tracer');
 $tracer = $this->openTelemetryTracer->getTracer();
@@ -49,6 +50,28 @@ information, see
 
 The configuration page is available at the path
 `/admin/config/development/opentelemetry`.
+
+
+### Local configuration quick start
+
+To get OpenTelemetry server locally with a convenient web interface to view your
+traces you can use [DDEV project](https://ddev.readthedocs.io/) with my
+[Grafana Stack addon for DDEV](https://github.com/MurzNN/ddev-grafana):
+
+1. Enable debug mode in OpenTelemetry module settings.
+
+2. Get the trace id from the message after enabling the setting.
+
+3. Open Grafana interface at url like `http://your-project.ddev.site:3000/`.
+
+4. Go to "Explore" tab in the left sidebar.
+
+5. Choose "Tempo" source from data source picker in the top left corner.
+
+6. Select "Query type = Search" in the form, and press the blue "Run query"
+button.
+
+7. See the list of recent traces and find your trace by the trace id.
 
 
 ## Maintainers
