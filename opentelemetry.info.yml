@@ -1,6 +1,6 @@
 name: 'OpenTelemetry'
 type: module
 description: 'Provides collecting and exporting telemetry data for Drupal using OpenTelemetry PHP library.'
-core_version_requirement: ^10
+core_version_requirement: ^9 || ^10
 package: 'Development'
 configure: opentelemetry.settings
