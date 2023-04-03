@@ -4,8 +4,9 @@
 /**
  * @file
  * A command line script to test OpenTelemetry collector.
- *
- * Put the collector endpoint into 'OPENTELEMETRY_ENDPOINT' environment variable
+ */
+
+/* Put the collector endpoint into 'OPENTELEMETRY_ENDPOINT' environment variable
  * like this:
  * OPENTELEMETRY_ENDPOINT=http://collector:4318/v1/traces ./collector-test.php
  */
@@ -35,11 +36,11 @@ $contentType = 'application/x-protobuf';
 
 $transportFactory = new OtlpHttpTransportFactory();
 $transport = $transportFactory->create(
-    $endpoint,
-    $contentType,
-    [],
-    NULL,
-    1,
+  $endpoint,
+  $contentType,
+  [],
+  NULL,
+  1,
 );
 
 $exporter = new SpanExporter($transport);
@@ -47,9 +48,9 @@ $exporter = new SpanExporter($transport);
 echo 'Starting OTLP tracer' . PHP_EOL;
 
 $tracerProvider = new TracerProvider(
-    new SimpleSpanProcessor(
-        $exporter
-    )
+  new SimpleSpanProcessor(
+    $exporter
+  )
 );
 $tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
 
@@ -68,16 +69,16 @@ for ($i = 0; $i < 3; $i++) {
     ->setAttribute('foo', 'bar');
 
   $span->addEvent(
-        'found_login' . $i, [
-          'id' => $i,
-          'username' => 'otuser' . $i,
-        ]
-    );
+    'found_login' . $i, [
+      'id' => $i,
+      'username' => 'otuser' . $i,
+    ]
+  );
   $span->addEvent(
-        'generated_session', [
-          'id' => md5((string) microtime(TRUE)),
-        ]
-    );
+    'generated_session', [
+      'id' => md5((string) microtime(TRUE)),
+    ]
+  );
 
   $span->end();
   echo '- Child span ended,     id: ' . $span->getContext()->getSpanId() . PHP_EOL;

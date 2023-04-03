@@ -13,10 +13,16 @@ namespace Drupal\opentelemetry\Plugin\opentelemetry\OpenTelemetryTrace;
  */
 class AutoInstrumentationTestTrace extends OpenTelemetryTraceBase {
 
+  /**
+   * {@inheritdoc}
+   */
   public function isAvailable(): bool {
     return extension_loaded('otel_instrumentation');
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getUnavailableReason(): ?string {
     if ($this->isAvailable()) {
       return NULL;

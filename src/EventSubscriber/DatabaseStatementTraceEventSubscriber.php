@@ -26,7 +26,7 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
   /**
    * The query counter.
    *
-   * @var int;
+   * @var \OpenTelemetry\API\Trace\SpanInterface
    */
   protected SpanInterface $queryCounter;
 

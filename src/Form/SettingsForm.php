@@ -4,6 +4,7 @@ namespace Drupal\opentelemetry\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\opentelemetry\OpenTelemetryTraceManager;
 use Drupal\opentelemetry\OpenTelemetryTracerService;
 use Drupal\opentelemetry\OpenTelemetryTracerServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -13,8 +14,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class SettingsForm extends ConfigFormBase {
 
+  /**
+   * {@inheritdoc}
+   */
   public function __construct(
     protected OpenTelemetryTracerServiceInterface $openTelemetryTracer,
+    protected OpenTelemetryTraceManager $openTelemetryTraceManager,
   ) {
   }
 
@@ -25,6 +30,7 @@ class SettingsForm extends ConfigFormBase {
     // Instantiates this form class.
     return new static(
       $container->get('opentelemetry.tracer'),
+      $container->get('plugin.manager.open_telemetry_span'),
     );
   }
 
@@ -75,18 +81,17 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME),
       '#required' => TRUE,
     ];
-    $spanPluginService = \Drupal::service('plugin.manager.open_telemetry_span');
-    if ($spanPlugins = $spanPluginService->getDefinitions()) {
+    if ($spanPlugins = $this->openTelemetryTraceManager->getDefinitions()) {
       $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS] = [
         '#type' => 'checkboxes',
         '#title' => 'Enabled trace plugins',
-        '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS),
+        '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS) ?? [],
         '#options' => [],
       ];
       foreach ($spanPlugins as $definition) {
         $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS]['#options'][$definition['id']] = $definition['label'];
         $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS][$definition['id']]['#description'] = $definition['description'];
-        $instance = $spanPluginService->createInstance($definition['id']);
+        $instance = $this->openTelemetryTraceManager->createInstance($definition['id']);
         if (!$instance->isAvailable()) {
           $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS][$definition['id']]['#disabled'] = TRUE;
           $form[OpenTelemetryTracerService::SETTING_ENABLED_PLUGINS][$definition['id']]['#description'] .= '<br/>' . $this->t('Reason for unavailability: @reason', ['@reason' => $instance->getUnavailableReason()]);
@@ -98,13 +103,6 @@ class SettingsForm extends ConfigFormBase {
     $spanParentForm->end();
     $spanForm->end();
     return $form;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    parent::validateForm($form, $form_state);
   }
 
   /**

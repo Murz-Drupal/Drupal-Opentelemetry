@@ -23,12 +23,24 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
   use StringTranslationTrait;
 
   /**
-   * Root span storage.
+   * The root span.
    *
    * @var \OpenTelemetry\API\Trace\SpanInterface
    */
   protected SpanInterface $rootSpan;
+
+  /**
+   * The request span.
+   *
+   * @var \OpenTelemetry\API\Trace\SpanInterface
+   */
   protected SpanInterface $requestSpan;
+
+  /**
+   * The context scope.
+   *
+   * @var \OpenTelemetry\Context\ScopeInterface
+   */
   protected ScopeInterface $scope;
 
   /**

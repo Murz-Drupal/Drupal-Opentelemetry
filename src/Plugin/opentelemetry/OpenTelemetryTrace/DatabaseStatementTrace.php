@@ -15,10 +15,16 @@ use Drupal\Core\Database\Event\DatabaseEvent;
  */
 class DatabaseStatementTrace extends OpenTelemetryTraceBase {
 
+  /**
+   * {@inheritdoc}
+   */
   public function isAvailable(): bool {
     return class_exists(DatabaseEvent::class);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getUnavailableReason(): ?string {
     if ($this->isAvailable()) {
       return NULL;

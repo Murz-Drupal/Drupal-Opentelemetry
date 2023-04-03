@@ -106,6 +106,7 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
 
     // Attaching the Drupal Logger via proxy to suppress repeating errors.
     $drupalLogger = $this->loggerChannelFactory->get('opentelemetry');
+
     $logger = new OpenTelemetryLoggerProxy($drupalLogger);
     LoggerHolder::set($logger);
 
