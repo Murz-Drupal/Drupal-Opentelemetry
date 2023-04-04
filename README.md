@@ -58,7 +58,7 @@ To get OpenTelemetry server locally with a convenient web interface to view your
 traces you can use [DDEV project](https://ddev.readthedocs.io/) with my
 [Grafana Stack addon for DDEV](https://github.com/MurzNN/ddev-grafana):
 
-1. Enable debug mode in OpenTelemetry module settings.
+1. Enable debug mode in OpenTelemetry module settings, and confugure the `http://tempo:9411/api/v2/spans`.
 
 2. Get the trace id from the message after enabling the setting.
 
