@@ -57,7 +57,7 @@ class SettingsForm extends ConfigFormBase {
     $form[OpenTelemetryTracerService::SETTING_ENDPOINT] = [
       '#type' => 'url',
       '#title' => $this->t('OpenTelemetry endpoint'),
-      '#description' => $this->t('URL to OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>http://localhost:9411/api/v2/spans</code>'),
+      '#description' => $this->t('URL to the OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>' . OpenTelemetryTracerService::ENDPOINT_FALLBACK . '</code>'),
       '#default_value' => $settings->get(OpenTelemetryTracerService::SETTING_ENDPOINT),
       '#required' => TRUE,
     ];

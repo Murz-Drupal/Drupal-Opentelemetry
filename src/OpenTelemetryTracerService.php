@@ -54,7 +54,7 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
   /**
    * A fallback value for the endpoint.
    */
-  const ENDPOINT_FALLBACK = 'http://localhost:9411/api/v2/spans';
+  const ENDPOINT_FALLBACK = 'http://localhost:4318/v1/traces';
 
   /**
    * A fallback value for service name.

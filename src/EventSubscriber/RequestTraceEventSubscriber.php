@@ -44,6 +44,20 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
   protected ScopeInterface $scope;
 
   /**
+   * A flag to inidicate initialization of the span.
+   *
+   * @var bool
+   */
+  protected bool $isSpanInitialized = FALSE;
+
+  /**
+   * A flag to inidicate the debug mode.
+   *
+   * @var bool
+   */
+  protected bool $isDebug = FALSE;
+
+  /**
    * Constructs the OpenTelemetry Event Subscriber.
    *
    * @param \Drupal\opentelemetry\OpenTelemetryTracerServiceInterface $openTelemetryTracer
@@ -76,7 +90,11 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    *   The kernel request event.
    */
   public function onRequest(RequestEvent $event) {
+    $this->isDebug = $this->openTelemetryTracer->isDebugMode();
     if (!$tracer = $this->openTelemetryTracer->getTracer()) {
+      if ($this->isDebug) {
+        \Drupal::messenger()->addError('RequestTrace plugin: Error with tracer initialization.');
+      }
       return;
     }
     $request = $event->getRequest();
@@ -86,7 +104,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       ->setStartTimestamp((int) ($request->server->get('REQUEST_TIME_FLOAT') * 1e9))
       ->setParent($parent)
       ->startSpan();
-    if ($this->openTelemetryTracer->isDebugMode()) {
+    if ($this->isDebug) {
       \Drupal::messenger()->addStatus(
         $this->t('RequestTrace plugin started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
           '@trace_id' => $this->rootSpan->getContext()->getTraceId(),
@@ -106,6 +124,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       ]
     );
     $this->requestSpan->addEvent('Request');
+    $this->isSpanInitialized = TRUE;
   }
 
   /**
@@ -115,7 +134,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    *   A ResponseEvent.
    */
   public function onResponse(ResponseEvent $event): void {
-    if (!$this->openTelemetryTracer->getTracer()) {
+    if (!$this->isSpanInitialized) {
       return;
     }
     $this->requestSpan->setAttribute('http.status_code', $event->getResponse()->getStatusCode());
@@ -129,7 +148,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    *   A FinishRequestEvent.
    */
   public function onFinishRequest(FinishRequestEvent $event): void {
-    if (!$this->openTelemetryTracer->getTracer()) {
+    if (!$this->isSpanInitialized) {
       return;
     }
     $this->requestSpan->addEvent('FinishRequest');
@@ -143,7 +162,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    *   A TerminateEvent.
    */
   public function onTerminate(TerminateEvent $event) {
-    if (!$this->openTelemetryTracer->getTracer()) {
+    if (!$this->isSpanInitialized) {
       return;
     }
     if (isset($this->rootSpan)) {
