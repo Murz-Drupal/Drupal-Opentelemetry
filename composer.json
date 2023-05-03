@@ -9,7 +9,7 @@
         "open-telemetry/exporter-otlp": "^1.0.0beta3"
     },
     "require-dev": {
-        "drupal/test_helpers": "^1.0.0-beta10"
+        "drupal/test_helpers": "^1.0.0-rc1"
     },
     "authors": [
         {

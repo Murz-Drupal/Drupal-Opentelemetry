@@ -3,15 +3,11 @@
 namespace Drupal\opentelemetry;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Config\ImmutableConfig;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use OpenTelemetry\API\Common\Log\LoggerHolder;
 use OpenTelemetry\API\Trace\TracerInterface;
-use OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory;
-use OpenTelemetry\Contrib\Otlp\SpanExporter;
-use OpenTelemetry\SDK\Common\Export\TransportInterface;
-use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
-use OpenTelemetry\SDK\Trace\TracerProvider;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\SDK\Common\Configuration\KnownValues;
 
 /**
  * Default OpenTelemetry service.
@@ -30,6 +26,10 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
    * A setting name to store the endpoint url.
    */
   const SETTING_ENDPOINT = 'endpoint';
+  /**
+   * A setting name to store the endpoint url.
+   */
+  const SETTING_OTEL_EXPORTER_OTLP_PROTOCOL = 'otel_exporter_otlp_protocol';
 
   /**
    * A setting name to store the service name.
@@ -40,6 +40,11 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
    * A setting name to store the root span name.
    */
   const SETTING_ROOT_SPAN_NAME = 'root_span_name';
+
+  /**
+   * A setting name to store the logger type.
+   */
+  const SETTING_LOGGER_DEDUPLICATION = 'logger_deduplication';
 
   /**
    * A setting name to store list of enabled plugins.
@@ -57,6 +62,11 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
   const ENDPOINT_FALLBACK = 'http://localhost:4318/v1/traces';
 
   /**
+   * A fallback content type for the endpoint.
+   */
+  const OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK = KnownValues::VALUE_HTTP_PROTOBUF;
+
+  /**
    * A fallback value for service name.
    */
   const SERVICE_NAME_FALLBACK = 'Drupal';
@@ -67,64 +77,50 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
   const ROOT_SPAN_NAME_FALLBACK = 'root';
 
   /**
-   * A configuration key to use for settings.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected ImmutableConfig $settings;
-
-  /**
-   * An OpenTelemetry transport.
-   *
-   * @var \OpenTelemetry\SDK\Common\Export\TransportInterface
-   */
-  protected TransportInterface $transport;
-
-  /**
-   * An OpenTelemetry Tracer.
+   * The OpenTelemetry Tracer.
    *
    * @var \OpenTelemetry\API\Trace\TracerInterface
    */
   protected TracerInterface $tracer;
 
   /**
+   * The trace id.
+   *
+   * @var string
+   */
+  protected ?string $traceId = NULL;
+
+  /**
    * Constructs a new OpenTelemetry service.
    *
+   * @param \OpenTelemetry\API\Trace\TracerProviderInterface $tracerProvider
+   *   The tracer provider.
+   * @param string $tracerName
+   *   The tracer name.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   *   A config factory.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerChannelFactory
-   *   The logger channel factory.
+   *   The config factory.
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   A logger.
    */
   public function __construct(
+    protected TracerProviderInterface $tracerProvider,
+    protected string $tracerName,
     protected ConfigFactoryInterface $configFactory,
-    protected LoggerChannelFactoryInterface $loggerChannelFactory,
+    protected LoggerChannelInterface $logger,
   ) {
-    $this->settings = $this->configFactory->get(self::SETTINGS_KEY);
 
-    // @todo Find a better way to set this.
-    putenv('OTEL_SERVICE_NAME=' . ($this->settings->get(self::SETTING_SERVICE_NAME) ?: self::SERVICE_NAME_FALLBACK));
+    $settings = $this->configFactory->get(self::SETTINGS_KEY);
 
-    // Attaching the Drupal Logger via proxy to suppress repeating errors.
-    $drupalLogger = $this->loggerChannelFactory->get('opentelemetry');
+    // Attaching the Drupal logger to the tracer.
+    if ($settings->get(self::SETTING_LOGGER_DEDUPLICATION) ?? TRUE) {
+      $logger = new OpenTelemetryLoggerProxy($this->logger);
+      LoggerHolder::set($logger);
+    }
+    else {
+      LoggerHolder::set($this->logger);
+    }
 
-    $logger = new OpenTelemetryLoggerProxy($drupalLogger);
-    LoggerHolder::set($logger);
-
-    // @todo Add support for other factories.
-    $transportFactory = new OtlpHttpTransportFactory();
-
-    $endpoint = $this->settings->get(self::SETTING_ENDPOINT) ?: self::ENDPOINT_FALLBACK;
-
-    // @todo Add support for custom content type, if needed for users.
-    $contentType = 'application/x-protobuf';
-    $this->transport = $transportFactory->create($endpoint, $contentType);
-
-    $exporter = new SpanExporter($this->transport);
-
-    $tracerProvider = new TracerProvider(
-      new SimpleSpanProcessor($exporter)
-    );
-    $this->tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
+    $this->tracer = $tracerProvider->getTracer($this->tracerName);
   }
 
   /**
@@ -138,32 +134,52 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
    * {@inheritdoc}
    */
   public function getRootSpanName(): string {
-    return $this->settings->get(self::SETTING_ROOT_SPAN_NAME) ?: self::ROOT_SPAN_NAME_FALLBACK;
+    $settings = $this->configFactory->get(self::SETTINGS_KEY);
+    return $settings->get(self::SETTING_ROOT_SPAN_NAME) ?: self::ROOT_SPAN_NAME_FALLBACK;
   }
 
   /**
    * {@inheritdoc}
    */
   public function isPluginEnabled(string $pluginId): ?bool {
-    $pluginsEnabled = $this->settings->get(self::SETTING_ENABLED_PLUGINS);
+    $settings = $this->configFactory->get(self::SETTINGS_KEY);
+    $pluginsEnabled = $settings->get(self::SETTING_ENABLED_PLUGINS);
     $pluginStatus = $pluginsEnabled[$pluginId] ?? NULL;
-    switch ($pluginStatus) {
-      case NULL:
-        return NULL;
-
-      case 0:
-        return FALSE;
-
-      default:
-        return TRUE;
-    }
+    return match ($pluginStatus) {
+      NULL => NULL,
+      0 => FALSE,
+      default => TRUE,
+    };
   }
 
   /**
    * {@inheritdoc}
    */
   public function isDebugMode(): bool {
-    return $this->settings->get(self::SETTING_DEBUG_MODE) ?: FALSE;
+    $settings = $this->configFactory->get(self::SETTINGS_KEY);
+    return $settings->get(self::SETTING_DEBUG_MODE) ?: FALSE;
+  }
+
+  /**
+   * The trace id.
+   *
+   * @return string
+   */
+  public function getTraceId(): ?string {
+    return $this->traceId;
+  }
+
+  /**
+   * The trace id.
+   *
+   * @param string $traceId
+   *   The trace id.
+   *
+   * @return self
+   */
+  public function setTraceId(string $traceId): self {
+    $this->traceId = $traceId;
+    return $this;
   }
 
 }

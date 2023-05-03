@@ -1,0 +1,27 @@
+opentelemetry.settings:
+  type: config_object
+  label: OpenTelemetry Settings
+  mapping:
+    endpoint:
+      type: string
+      label: Endpoint
+    otel_exporter_otlp_protocol:
+      type: string
+      label: OTEL Exporter protocol
+    service_name:
+      type: string
+      label: Service Name
+    root_span_name:
+      type: string
+      label: Root Span Name
+    debug_mode:
+      type: boolean
+      label: Debug mode
+    logger_deduplication:
+      type: boolean
+      label: Enable logger deduplication
+    span_plugins_enabled:
+      type: sequence
+      label: Enabled Span Plugins
+      sequence:
+        type: string

@@ -104,10 +104,13 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       ->setStartTimestamp((int) ($request->server->get('REQUEST_TIME_FLOAT') * 1e9))
       ->setParent($parent)
       ->startSpan();
+    $traceId = $this->rootSpan->getContext()->getTraceId();
+    $this->openTelemetryTracer->setTraceId($traceId);
+
     if ($this->isDebug) {
       \Drupal::messenger()->addStatus(
         $this->t('RequestTrace plugin started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
-          '@trace_id' => $this->rootSpan->getContext()->getTraceId(),
+          '@trace_id' => $traceId,
           '@span_id' => $this->rootSpan->getContext()->getSpanId(),
         ])
       );
