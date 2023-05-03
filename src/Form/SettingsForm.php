@@ -156,7 +156,7 @@ class SettingsForm extends ConfigFormBase {
       }
       $label = $setting->getDataDefinition()->getLabel();
     }
-    catch (\Exception $e) {
+    catch (\Throwable $e) {
       $label = $fallback ?: $key;
     }
     return $label;

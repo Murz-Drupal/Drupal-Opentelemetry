@@ -1,5 +1,5 @@
 endpoint: http://localhost:4318/v1/traces
-otel_exporter_otlp_protocol: application/x-protobuf
+otel_exporter_otlp_protocol: http/protobuf
 service_name: Drupal
 root_span_name: root
 debug_mode: false
