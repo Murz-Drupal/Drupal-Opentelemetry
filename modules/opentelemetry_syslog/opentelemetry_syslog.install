@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the opentelemetry_syslog module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function opentelemetry_syslog_install() {
+  // Replacing the syslog format to add trace_id value to the end.
+  \Drupal::configFactory()->getEditable('syslog.settings')->set('format', '!base_url|!timestamp|!type|!ip|!request_uri|!referer|!uid|!link|!message|!trace_id')->save();
+}
