@@ -4,15 +4,17 @@ namespace Drupal\opentelemetry\EventSubscriber;
 
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\opentelemetry\OpenTelemetryTracerServiceInterface;
+use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\Context\ScopeInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
+use Symfony\Component\HttpKernel\Event\ViewEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
@@ -60,13 +62,13 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
   /**
    * Constructs the OpenTelemetry Event Subscriber.
    *
-   * @param \Drupal\opentelemetry\OpenTelemetryTracerServiceInterface $openTelemetryTracer
+   * @param \Drupal\opentelemetry\OpentelemetryTracerServiceInterface $openTelemetryTracer
    *   An OpenTelemetry service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   A Drupal Messenger.
    */
   public function __construct(
-    protected OpenTelemetryTracerServiceInterface $openTelemetryTracer,
+    protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
     protected MessengerInterface $messenger,
   ) {
   }
@@ -77,6 +79,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents() {
     return [
       KernelEvents::REQUEST => ['onRequest', 0],
+      KernelEvents::VIEW => ['onView', 0],
       KernelEvents::RESPONSE => ['onResponse', 0],
       KernelEvents::FINISH_REQUEST => ['onFinishRequest', 0],
       KernelEvents::TERMINATE => ['onTerminate', 0],
@@ -98,26 +101,10 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       return;
     }
     $request = $event->getRequest();
-
-    $parent = TraceContextPropagator::getInstance()->extract($request->headers->all());
-    $this->rootSpan = $tracer->spanBuilder($this->openTelemetryTracer->getRootSpanName())
-      ->setStartTimestamp((int) ($request->server->get('REQUEST_TIME_FLOAT') * 1e9))
-      ->setParent($parent)
-      ->startSpan();
-    $traceId = $this->rootSpan->getContext()->getTraceId();
-    $this->openTelemetryTracer->setTraceId($traceId);
-
-    if ($this->isDebug) {
-      \Drupal::messenger()->addStatus(
-        $this->t('RequestTrace plugin started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
-          '@trace_id' => $traceId,
-          '@span_id' => $this->rootSpan->getContext()->getSpanId(),
-        ])
-      );
-    }
-    $this->scope = $this->rootSpan->activate();
-
     $requestSpanName = $request->getMethod() . ' ' . $request->getRequestUri();
+
+    $this->activateRootSpan($requestSpanName, $request);
+
     $this->requestSpan = $tracer->spanBuilder($requestSpanName)->startSpan();
     $this->requestSpan->setAttributes(
       [
@@ -127,7 +114,39 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       ]
     );
     $this->requestSpan->addEvent('Request');
-    $this->isSpanInitialized = TRUE;
+  }
+
+  /**
+   * Initializes the root span and the Request span on View event.
+   *
+   * The VIEW event occurs when the return value of a controller
+   * is not a Response instance
+   *
+   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
+   *   The kernel request event.
+   */
+  public function onView(ViewEvent $event): void {
+    $this->isDebug = $this->openTelemetryTracer->isDebugMode();
+    if (!$tracer = $this->openTelemetryTracer->getTracer()) {
+      if ($this->isDebug) {
+        \Drupal::messenger()->addError('RequestTrace plugin: Error with tracer initialization.');
+      }
+      return;
+    }
+    $request = $event->getRequest();
+    $requestSpanName = $request->getMethod() . ' ' . $request->getRequestUri() . ' (view)';
+
+    $this->activateRootSpan($requestSpanName, $request);
+
+    $this->requestSpan = $tracer->spanBuilder($requestSpanName)->startSpan();
+    $this->requestSpan->setAttributes(
+      [
+        'http.method' => $request->getMethod(),
+        'http.flavor' => $request->getProtocolVersion(),
+        'http.url' => $request->getSchemeAndHttpHost() . $request->getRequestUri(),
+      ]
+    );
+    $this->requestSpan->addEvent('Request');
   }
 
   /**
@@ -174,6 +193,40 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     if (isset($this->scope)) {
       $this->scope->detach();
     }
+  }
+
+  private function activateRootSpan(string $name = NULL, Request $request) {
+    if ($this->isSpanInitialized) {
+      return;
+    }
+    if (!$tracer = $this->openTelemetryTracer->getTracer()) {
+      if ($this->isDebug) {
+        \Drupal::messenger()->addError('RequestTrace plugin: Error with tracer initialization.');
+      }
+      return;
+    }
+    $name ??= 'Unnamed span';
+    $parent = TraceContextPropagator::getInstance()->extract($request->headers->all());
+
+    $this->rootSpan = $tracer->spanBuilder($name)
+      ->setStartTimestamp((int) ($request->server->get('REQUEST_TIME_FLOAT') * 1e9))
+      ->setParent($parent)
+      ->startSpan();
+
+    if ($this->isDebug) {
+      \Drupal::messenger()->addStatus(
+        $this->t('RequestTrace plugin started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
+          '@trace_id' => $traceId,
+          '@span_id' => $this->rootSpan->getContext()->getSpanId(),
+        ])
+      );
+    }
+
+    $traceId = $this->rootSpan->getContext()->getTraceId();
+    $this->openTelemetryTracer->setTraceId($traceId);
+
+    $this->scope = $this->rootSpan->activate();
+    $this->isSpanInitialized = TRUE;
   }
 
 }

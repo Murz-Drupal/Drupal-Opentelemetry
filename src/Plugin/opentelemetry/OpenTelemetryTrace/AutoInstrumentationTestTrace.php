@@ -11,7 +11,7 @@ namespace Drupal\opentelemetry\Plugin\opentelemetry\OpenTelemetryTrace;
  *   description = @Translation("Auto-instrumentation test plugin."),
  * )
  */
-class AutoInstrumentationTestTrace extends OpenTelemetryTraceBase {
+class AutoInstrumentationTestTrace extends OpentelemetryTraceBase {
 
   /**
    * {@inheritdoc}

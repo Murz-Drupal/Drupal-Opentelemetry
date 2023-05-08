@@ -7,10 +7,10 @@ use Drupal\Core\Plugin\PluginBase;
 /**
  * The base plugin for OpenTelemetry Span plugins.
  */
-abstract class OpenTelemetryTraceBase extends PluginBase {
+abstract class OpentelemetryTraceBase extends PluginBase {
 
   /**
-   * Checks is plugin available by checking all requirements.
+   * Checks if plugin is available by checking all requirements.
    *
    * @return bool
    *   TRUE if all requirements are present.
@@ -24,6 +24,16 @@ abstract class OpenTelemetryTraceBase extends PluginBase {
    */
   public function getUnavailableReason(): ?string {
     return NULL;
+  }
+
+  /**
+   * Checks conditions and reports if the plugin should be enabled by default.
+   *
+   * @return bool
+   *   TRUE if it should be enabled by default.
+   */
+  public function enabledByDefault(): bool {
+    return FALSE;
   }
 
 }

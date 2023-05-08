@@ -5,7 +5,7 @@ namespace Drupal\opentelemetry\EventSubscriber;
 use Drupal\Core\Database\Event\DatabaseEvent;
 use Drupal\Core\Database\Event\StatementExecutionEndEvent;
 use Drupal\Core\Database\Event\StatementExecutionStartEvent;
-use Drupal\opentelemetry\OpenTelemetryTracerServiceInterface;
+use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -33,11 +33,11 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
   /**
    * Constructs the Database Event Subscriber.
    *
-   * @param \Drupal\opentelemetry\OpenTelemetryTracerServiceInterface $openTelemetryTracer
+   * @param \Drupal\opentelemetry\OpentelemetryTracerServiceInterface $openTelemetryTracer
    *   An OpenTelemetry service.
    */
   public function __construct(
-    protected OpenTelemetryTracerServiceInterface $openTelemetryTracer,
+    protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
   ) {
     // This produces a ServiceCircularReferenceException exception.
     // @todo Investigate this.

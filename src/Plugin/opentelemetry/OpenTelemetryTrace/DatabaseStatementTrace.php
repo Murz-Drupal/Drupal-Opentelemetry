@@ -13,7 +13,7 @@ use Drupal\Core\Database\Event\DatabaseEvent;
  *   description = @Translation("Traces all database statements. Requires Core version 10.1 or higher."),
  * )
  */
-class DatabaseStatementTrace extends OpenTelemetryTraceBase {
+class DatabaseStatementTrace extends OpentelemetryTraceBase {
 
   /**
    * {@inheritdoc}

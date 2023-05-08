@@ -11,9 +11,6 @@ opentelemetry.settings:
     service_name:
       type: string
       label: Service Name
-    root_span_name:
-      type: string
-      label: Root Span Name
     debug_mode:
       type: boolean
       label: Debug mode

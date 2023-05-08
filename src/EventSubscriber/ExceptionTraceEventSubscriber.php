@@ -2,7 +2,9 @@
 
 namespace Drupal\opentelemetry\EventSubscriber;
 
-use Drupal\opentelemetry\OpenTelemetryTracerServiceInterface;
+use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
+use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\SDK\Trace\Span;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -15,11 +17,11 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
   /**
    * Constructs the OpenTelemetry Event Subscriber.
    *
-   * @param \Drupal\opentelemetry\OpenTelemetryTracerServiceInterface $openTelemetryTracer
+   * @param \Drupal\opentelemetry\OpentelemetryTracerServiceInterface $openTelemetryTracer
    *   An OpenTelemetry service.
    */
   public function __construct(
-    protected OpenTelemetryTracerServiceInterface $openTelemetryTracer
+    protected OpentelemetryTracerServiceInterface $openTelemetryTracer
   ) {
   }
 
@@ -42,18 +44,18 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
     if (!$tracer = $this->openTelemetryTracer->getTracer()) {
       return;
     }
+    $endSpan = FALSE;
     $exception = $event->getThrowable();
     $tracer = $this->openTelemetryTracer->getTracer();
-    // @todo Find how to add an event to current span, without a new one.
-    $span = $tracer->spanBuilder('exception')->startSpan();
-    $span->addEvent(
-      'Exception', [
-        'code' => $exception->getCode(),
-        'message' => $exception->getMessage(),
-        'trace' => $exception->getTraceAsString(),
-      ]
-    );
-    $span->end();
+    if (!$span = Span::getCurrent()) {
+      $span = $tracer->spanBuilder('Exception')->startSpan();
+      $endSpan = TRUE;
+    }
+    $span->setStatus(StatusCode::STATUS_ERROR, $exception->getMessage());
+    $span->recordException($exception);
+    if ($endSpan) {
+      $span->end();
+    }
   }
 
 }

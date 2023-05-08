@@ -43,22 +43,22 @@ class TransportFactory {
    *   The OT transport.
    */
   public function create(): TransportInterface {
-    $settings = $this->configFactory->get(OpenTelemetryTracerService::SETTINGS_KEY);
+    $settings = $this->configFactory->get(OpentelemetryTracerService::SETTINGS_KEY);
 
     // @todo Find a better way to set this.
     if (!getenv(Variables::OTEL_SERVICE_NAME)) {
-      putenv(Variables::OTEL_SERVICE_NAME . '=' . ($settings->get(OpenTelemetryTracerService::SETTING_SERVICE_NAME) ?: OpenTelemetryTracerService::SERVICE_NAME_FALLBACK));
+      putenv(Variables::OTEL_SERVICE_NAME . '=' . ($settings->get(OpentelemetryTracerService::SETTING_SERVICE_NAME) ?: OpentelemetryTracerService::SERVICE_NAME_FALLBACK));
     }
 
     $endpoint =
       getenv(Variables::OTEL_EXPORTER_OTLP_ENDPOINT)
-      ?: $settings->get(OpenTelemetryTracerService::SETTING_ENDPOINT)
-      ?: OpenTelemetryTracerService::ENDPOINT_FALLBACK;
+      ?: $settings->get(OpentelemetryTracerService::SETTING_ENDPOINT)
+      ?: OpentelemetryTracerService::ENDPOINT_FALLBACK;
 
     $protocol =
       getenv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL)
-      // ?: $settings->get(OpenTelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
-      ?: OpenTelemetryTracerService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK;
+      // ?: $settings->get(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
+      ?: OpentelemetryTracerService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK;
 
     $contentType = Protocols::contentType($protocol);
     try {

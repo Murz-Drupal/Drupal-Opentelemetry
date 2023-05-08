@@ -3,12 +3,13 @@ parameters:
 
 services:
   opentelemetry.tracer:
-    class: Drupal\opentelemetry\OpenTelemetryTracerService
+    class: Drupal\opentelemetry\OpentelemetryTracerService
     arguments:
       - '@OpenTelemetry\SDK\Trace\TracerProvider'
       - '%tracer_name%'
       - '@config.factory'
       - '@logger.channel.opentelemetry'
+      - '@plugin.manager.opentelemetry_trace'
 
   OpenTelemetry\SDK\Trace\TracerProvider:
     arguments:
@@ -36,8 +37,8 @@ services:
 
   OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory: {}
 
-  plugin.manager.open_telemetry_span:
-    class: Drupal\opentelemetry\OpenTelemetryTraceManager
+  plugin.manager.opentelemetry_trace:
+    class: Drupal\opentelemetry\OpentelemetryTraceManager
     parent: default_plugin_manager
 
   Drupal\opentelemetry\EventSubscriber\RequestTraceEventSubscriber:
@@ -48,6 +49,12 @@ services:
       - { name: event_subscriber }
 
   Drupal\opentelemetry\EventSubscriber\DatabaseStatementTraceEventSubscriber:
+    arguments:
+      - '@opentelemetry.tracer'
+    tags:
+      - { name: event_subscriber }
+
+  Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
     arguments:
       - '@opentelemetry.tracer'
     tags:

@@ -11,6 +11,13 @@ namespace Drupal\opentelemetry\Plugin\opentelemetry\OpenTelemetryTrace;
  *   description = @Translation("Traces all exceptions."),
  * )
  */
-class ExceptionTrace extends OpenTelemetryTraceBase {
-  // Nothing here yet. Just a placeholder class for a plugin.
+class ExceptionTrace extends OpentelemetryTraceBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function enabledByDefault(): bool {
+    return TRUE;
+  }
+
 }

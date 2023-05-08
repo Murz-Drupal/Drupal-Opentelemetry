@@ -3,16 +3,16 @@
 namespace Drupal\opentelemetry;
 
 /**
- * A shim to make a class compatible with Drupal 10.x Psr\Log\LoggerInterface.
+ * A shim to make a class compatible with Drupal 9.x Psr\Log\LoggerInterface.
  */
-trait OpenTelemetryLoggerProxyTrait {
+trait OpentelemetryLoggerProxyTrait {
 
   /**
    * A proxy function to make the class compatible with Drupal 9.x and 10.x.
    *
    * {@inheritdoc}
    */
-  public function log($level, string|\Stringable $message, array $context = []): void {
+  public function log($level, $message, array $context = []): void {
     $this->doLog($level, $message, $context);
   }
 

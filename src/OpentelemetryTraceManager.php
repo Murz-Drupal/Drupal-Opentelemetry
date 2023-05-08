@@ -9,7 +9,7 @@ use Drupal\Core\Plugin\DefaultPluginManager;
 /**
  * A Plugin to manage OpenTelemetry Span plugins.
  */
-class OpenTelemetryTraceManager extends DefaultPluginManager {
+class OpentelemetryTraceManager extends DefaultPluginManager {
 
   /**
    * {@inheritdoc}

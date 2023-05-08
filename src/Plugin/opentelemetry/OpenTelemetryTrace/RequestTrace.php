@@ -11,6 +11,13 @@ namespace Drupal\opentelemetry\Plugin\opentelemetry\OpenTelemetryTrace;
  *   description = @Translation("Traces a Drupal/Symfony request from the first Request event to Terminate event."),
  * )
  */
-class RequestTrace extends OpenTelemetryTraceBase {
-  // Nothing here yet. Just a placeholder class for a plugin.
+class RequestTrace extends OpentelemetryTraceBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function enabledByDefault(): bool {
+    return TRUE;
+  }
+
 }

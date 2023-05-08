@@ -9,7 +9,7 @@ use OpenTelemetry\API\Trace\TracerInterface;
  *
  * @package Drupal\opentelemetry
  */
-interface OpenTelemetryTracerServiceInterface {
+interface OpentelemetryTracerServiceInterface {
 
   /**
    * Returns the tracer instance.
@@ -18,14 +18,6 @@ interface OpenTelemetryTracerServiceInterface {
    *   An initialized tracer to use for spans.
    */
   public function getTracer(): ?TracerInterface;
-
-  /**
-   * Returns a span name to use for the root span.
-   *
-   * @return string
-   *   The name for the root span.
-   */
-  public function getRootSpanName(): string;
 
   /**
    * Returns the status of a OpenTelemetryTrace plugin.

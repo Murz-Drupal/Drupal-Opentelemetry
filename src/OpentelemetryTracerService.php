@@ -14,7 +14,7 @@ use OpenTelemetry\SDK\Common\Configuration\KnownValues;
  *
  * @package Drupal\opentelemetry
  */
-class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface {
+class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface {
 
 
   /**
@@ -35,11 +35,6 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
    * A setting name to store the service name.
    */
   const SETTING_SERVICE_NAME = 'service_name';
-
-  /**
-   * A setting name to store the root span name.
-   */
-  const SETTING_ROOT_SPAN_NAME = 'root_span_name';
 
   /**
    * A setting name to store the logger type.
@@ -72,11 +67,6 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
   const SERVICE_NAME_FALLBACK = 'Drupal';
 
   /**
-   * A fallback value for the root span name.
-   */
-  const ROOT_SPAN_NAME_FALLBACK = 'root';
-
-  /**
    * The OpenTelemetry Tracer.
    *
    * @var \OpenTelemetry\API\Trace\TracerInterface
@@ -98,22 +88,25 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
    * @param string $tracerName
    *   The tracer name.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   *   The config factory.
+   *   A config factory.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
    *   A logger.
+   * @param \Drupal\opentelemetry\OpentelemetryTraceManager $OpentelemetryTraceManager
+   *   The OpenTelemetry Trace Manager.
    */
   public function __construct(
     protected TracerProviderInterface $tracerProvider,
     protected string $tracerName,
     protected ConfigFactoryInterface $configFactory,
     protected LoggerChannelInterface $logger,
+    protected OpentelemetryTraceManager $OpentelemetryTraceManager,
   ) {
 
     $settings = $this->configFactory->get(self::SETTINGS_KEY);
 
     // Attaching the Drupal logger to the tracer.
     if ($settings->get(self::SETTING_LOGGER_DEDUPLICATION) ?? TRUE) {
-      $logger = new OpenTelemetryLoggerProxy($this->logger);
+      $logger = new OpentelemetryLoggerProxy($this->logger);
       LoggerHolder::set($logger);
     }
     else {
@@ -133,18 +126,16 @@ class OpenTelemetryTracerService implements OpenTelemetryTracerServiceInterface 
   /**
    * {@inheritdoc}
    */
-  public function getRootSpanName(): string {
-    $settings = $this->configFactory->get(self::SETTINGS_KEY);
-    return $settings->get(self::SETTING_ROOT_SPAN_NAME) ?: self::ROOT_SPAN_NAME_FALLBACK;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isPluginEnabled(string $pluginId): ?bool {
     $settings = $this->configFactory->get(self::SETTINGS_KEY);
     $pluginsEnabled = $settings->get(self::SETTING_ENABLED_PLUGINS);
     $pluginStatus = $pluginsEnabled[$pluginId] ?? NULL;
+    if ($pluginStatus === NULL) {
+      $instance = $this->OpentelemetryTraceManager->createInstance($pluginId);
+      if ($instance->enabledByDefault()) {
+        $pluginStatus = TRUE;
+      }
+    }
     return match ($pluginStatus) {
       NULL => NULL,
       0 => FALSE,

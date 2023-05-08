@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\opentelemetry\Unit;
 
-use Drupal\opentelemetry\OpenTelemetryTracerService;
-use Drupal\opentelemetry\OpenTelemetryTracerServiceInterface;
+use Drupal\opentelemetry\OpentelemetryTracerService;
+use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\test_helpers\Stub\LoggerChannelFactoryStub;
 use Drupal\test_helpers\TestHelpers;
@@ -12,12 +12,13 @@ use OpenTelemetry\Contrib\Otlp\SpanExporter;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use Drupal\opentelemetry\OpentelemetryTraceManager;
 
 /**
- * @coversDefaultClass \Drupal\opentelemetry\OpenTelemetryTracerService
+ * @coversDefaultClass \Drupal\opentelemetry\OpentelemetryTracerService
  * @group opentelemetry
  */
-class OpenTelemetryTracerServiceTest extends UnitTestCase {
+class OpentelemetryTracerServiceTest extends UnitTestCase {
 
   /**
    * {@inheritdoc}
@@ -32,15 +33,13 @@ class OpenTelemetryTracerServiceTest extends UnitTestCase {
   /**
    * @covers ::__construct
    * @covers ::getTracer
-   * @covers ::getRootSpanName
    */
   public function testServiceDefaultSettings() {
     $settinsFallback = [
-      OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME => OpenTelemetryTracerService::ROOT_SPAN_NAME_FALLBACK,
-      OpenTelemetryTracerService::SETTING_ENDPOINT => OpenTelemetryTracerService::ENDPOINT_FALLBACK,
-      OpenTelemetryTracerService::SETTING_SERVICE_NAME => OpenTelemetryTracerService::SERVICE_NAME_FALLBACK,
+      OpentelemetryTracerService::SETTING_ENDPOINT => OpentelemetryTracerService::ENDPOINT_FALLBACK,
+      OpentelemetryTracerService::SETTING_SERVICE_NAME => OpentelemetryTracerService::SERVICE_NAME_FALLBACK,
     ];
-    TestHelpers::service('config.factory')->stubSetConfig(OpenTelemetryTracerService::SETTINGS_KEY, $settinsFallback);
+    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryTracerService::SETTINGS_KEY, $settinsFallback);
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settinsFallback);
   }
@@ -48,15 +47,13 @@ class OpenTelemetryTracerServiceTest extends UnitTestCase {
   /**
    * @covers ::__construct
    * @covers ::getTracer
-   * @covers ::getRootSpanName
    */
   public function testServiceCustomSettings() {
     $settings = [
-      OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME => 'custom',
-      OpenTelemetryTracerService::SETTING_ENDPOINT => 'https://collector:80/api/v2/spans',
-      OpenTelemetryTracerService::SETTING_SERVICE_NAME => 'My Drupal',
+      OpentelemetryTracerService::SETTING_ENDPOINT => 'https://collector:80/api/v2/spans',
+      OpentelemetryTracerService::SETTING_SERVICE_NAME => 'My Drupal',
     ];
-    TestHelpers::service('config.factory')->stubSetConfig(OpenTelemetryTracerService::SETTINGS_KEY, $settings);
+    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryTracerService::SETTINGS_KEY, $settings);
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
   }
@@ -64,14 +61,12 @@ class OpenTelemetryTracerServiceTest extends UnitTestCase {
   /**
    * Does check of applied service settings with configured values.
    *
-   * @param \Drupal\opentelemetry\OpenTelemetryTracerServiceInterface $service
-   *   An OpenTelemetryTracerService.
+   * @param \Drupal\opentelemetry\OpentelemetryTracerServiceInterface $service
+   *   An OpentelemetryTracerService.
    * @param array $settings
    *   An array with settings values.
    */
-  private function checkServiceSettings(OpenTelemetryTracerServiceInterface $service, array $settings) {
-    $this->assertEquals($settings[OpenTelemetryTracerService::SETTING_ROOT_SPAN_NAME], $service->getRootSpanName());
-
+  private function checkServiceSettings(OpentelemetryTracerServiceInterface $service, array $settings) {
     // Getting transport object via chain of dependencies.
     $tracer = $service->getTracer();
     $tracerSharedState = TestHelpers::getPrivateProperty($tracer, 'tracerSharedState');
@@ -81,10 +76,10 @@ class OpenTelemetryTracerServiceTest extends UnitTestCase {
     $transportEndpoint = TestHelpers::getPrivateProperty($transport, 'endpoint');
     $transportContentType = TestHelpers::getPrivateProperty($transport, 'contentType');
 
-    $this->assertEquals($settings[OpenTelemetryTracerService::SETTING_ENDPOINT], $transportEndpoint);
+    $this->assertEquals($settings[OpentelemetryTracerService::SETTING_ENDPOINT], $transportEndpoint);
 
     $resourceAttributes = $tracerSharedState->getResource()->getAttributes();
-    $this->assertEquals($settings[OpenTelemetryTracerService::SETTING_SERVICE_NAME], $resourceAttributes->get('service.name'));
+    $this->assertEquals($settings[OpentelemetryTracerService::SETTING_SERVICE_NAME], $resourceAttributes->get('service.name'));
   }
 
   /**
@@ -92,6 +87,7 @@ class OpenTelemetryTracerServiceTest extends UnitTestCase {
    */
   private function initTracerService() {
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
+    TestHelpers::service('plugin.manager.opentelemetry_trace', $this->createMock(OpentelemetryTraceManager::class));
     TestHelpers::service('OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory', new OtlpHttpTransportFactory());
     $transportFactory = TestHelpers::initService('Drupal\opentelemetry\TransportFactory');
     $transport = $transportFactory->create();
@@ -100,7 +96,7 @@ class OpenTelemetryTracerServiceTest extends UnitTestCase {
     $tracerProvider = new TracerProvider($spanProcessor);
     TestHelpers::service('OpenTelemetry\SDK\Trace\TracerProvider', $tracerProvider, TRUE);
 
-    /** @var \Drupal\opentelemetry\OpenTelemetryTracerServiceInterface $service */
+    /** @var \Drupal\opentelemetry\OpentelemetryTracerServiceInterface $service */
     $service = TestHelpers::initService('opentelemetry.tracer');
     return $service;
   }
