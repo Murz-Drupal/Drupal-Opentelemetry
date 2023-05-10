@@ -5,8 +5,8 @@
     "require": {
         "php": ">=8.0",
         "google/protobuf": "^3.22",
-        "open-telemetry/sdk": "^1.0.0beta5",
-        "open-telemetry/exporter-otlp": "^1.0.0beta3"
+        "open-telemetry/sdk": "^1.0.0beta10",
+        "open-telemetry/exporter-otlp": "^1.0.0beta8"
     },
     "require-dev": {
         "drupal/test_helpers": "^1.0.0-rc1"
