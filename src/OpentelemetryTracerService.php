@@ -91,7 +91,7 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
    *   A config factory.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
    *   A logger.
-   * @param \Drupal\opentelemetry\OpentelemetryTraceManager $OpentelemetryTraceManager
+   * @param \Drupal\opentelemetry\OpentelemetryTraceManager $opentelemetryTraceManager
    *   The OpenTelemetry Trace Manager.
    */
   public function __construct(
@@ -99,7 +99,7 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
     protected string $tracerName,
     protected ConfigFactoryInterface $configFactory,
     protected LoggerChannelInterface $logger,
-    protected OpentelemetryTraceManager $OpentelemetryTraceManager,
+    protected OpentelemetryTraceManager $opentelemetryTraceManager,
   ) {
 
     $settings = $this->configFactory->get(self::SETTINGS_KEY);
@@ -131,7 +131,7 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
     $pluginsEnabled = $settings->get(self::SETTING_ENABLED_PLUGINS);
     $pluginStatus = $pluginsEnabled[$pluginId] ?? NULL;
     if ($pluginStatus === NULL) {
-      $instance = $this->OpentelemetryTraceManager->createInstance($pluginId);
+      $instance = $this->opentelemetryTraceManager->createInstance($pluginId);
       if ($instance->enabledByDefault()) {
         $pluginStatus = TRUE;
       }

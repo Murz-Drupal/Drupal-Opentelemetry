@@ -21,7 +21,7 @@ class SettingsForm extends ConfigFormBase {
    */
   public function __construct(
     protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
-    protected OpentelemetryTraceManager $OpentelemetryTraceManager,
+    protected OpentelemetryTraceManager $opentelemetryTraceManager,
   ) {
   }
 
@@ -102,7 +102,7 @@ class SettingsForm extends ConfigFormBase {
       '#description' => $this->t("Trace exporter can provide a lot of errors if the connection is failed, that can slow down your site. Enable this option to suppress logging prevent logging identical messages in a row messages in a row."),
       '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_LOGGER_DEDUPLICATION),
     ];
-    if ($tracePlugins = $this->OpentelemetryTraceManager->getDefinitions()) {
+    if ($tracePlugins = $this->opentelemetryTraceManager->getDefinitions()) {
       $pluginsEnabled = $settings->get(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS) ?? [];
       $pluginsAvailable = [];
       $pluginsDescription = [];
@@ -112,13 +112,10 @@ class SettingsForm extends ConfigFormBase {
         $pluginsDescription[$id] = [
           '#description' => $definition['description'],
         ];
-        $instance = $this->OpentelemetryTraceManager->createInstance($id);
+        $instance = $this->opentelemetryTraceManager->createInstance($id);
         if (!$instance->isAvailable()) {
           $pluginsDescription[$id]['#disabled'] = TRUE;
           $pluginsDescription[$id]['#description'] .= '<br/>' . $this->t('Reason for unavailability: @reason', ['@reason' => $instance->getUnavailableReason()]);
-        }
-        if ($this->openTelemetryTracer->isPluginEnabled($id)) {
-          $pluginsEnabled[$id] = $id;
         }
       }
       $form[OpentelemetryTracerService::SETTING_ENABLED_PLUGINS] = [
