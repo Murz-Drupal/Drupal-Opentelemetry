@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * The opentelemetry_syslog module hooks.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function opentelemetry_syslog_form_system_logging_settings_alter(&$form, FormStateInterface $form_state) {
+  $form['opentelemetry_syslog_format'] = [
+    '#markup' => t('<div>From OpenTelemetry Syslog module:</div><div class="form-item__description"><dl><dt><code>!trace_id</code></dt><dd>A trace id value from OpenTelemetry module.</dd></dl></div>'),
+    '#weight' => 1,
+  ];
+}
