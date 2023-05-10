@@ -19,6 +19,9 @@ class OpenTelemetrySysLog extends SysLog {
     // dependency, so using a static call to the service.
     try {
       $tracer ??= \Drupal::service('opentelemetry.tracer');
+      // This returns empty trace id for 404 pages, because it's called
+      // before the KernelEvents::REQUEST happens.
+      // @todo Invent a workaround for this problem.
       $traceId = $tracer->getTraceId();
       $entry = strtr($entry, [
         '!trace_id' => $traceId,
