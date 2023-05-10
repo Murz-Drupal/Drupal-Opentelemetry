@@ -101,11 +101,11 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       return;
     }
     $request = $event->getRequest();
-    $requestSpanName = $request->getMethod() . ' ' . $request->getRequestUri();
+    $spanName = $this->createSpanName($request->getMethod(), $request->getRequestUri(), 'request');
 
-    $this->activateRootSpan($requestSpanName, $request);
+    $this->activateRootSpan($request);
 
-    $this->requestSpan = $tracer->spanBuilder($requestSpanName)->startSpan();
+    $this->requestSpan = $tracer->spanBuilder($spanName)->startSpan();
     $this->requestSpan->setAttributes(
       [
         'http.method' => $request->getMethod(),
@@ -134,11 +134,11 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       return;
     }
     $request = $event->getRequest();
-    $requestSpanName = $request->getMethod() . ' ' . $request->getRequestUri() . ' (view)';
+    $spanName = $this->createSpanName($request->getMethod(), $request->getRequestUri(), 'view');
 
-    $this->activateRootSpan($requestSpanName, $request);
+    $this->activateRootSpan($request);
 
-    $this->requestSpan = $tracer->spanBuilder($requestSpanName)->startSpan();
+    $this->requestSpan = $tracer->spanBuilder($spanName)->startSpan();
     $this->requestSpan->setAttributes(
       [
         'http.method' => $request->getMethod(),
@@ -195,7 +195,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     }
   }
 
-  private function activateRootSpan(string $name = NULL, Request $request) {
+  private function activateRootSpan(Request $request) {
     if ($this->isSpanInitialized) {
       return;
     }
@@ -205,10 +205,10 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       }
       return;
     }
-    $name ??= 'Unnamed span';
+    $spanName = $this->createSpanName($request->getMethod(), $request->getRequestUri(), 'kernel');
     $parent = TraceContextPropagator::getInstance()->extract($request->headers->all());
 
-    $this->rootSpan = $tracer->spanBuilder($name)
+    $this->rootSpan = $tracer->spanBuilder($spanName)
       ->setStartTimestamp((int) ($request->server->get('REQUEST_TIME_FLOAT') * 1e9))
       ->setParent($parent)
       ->startSpan();
@@ -227,6 +227,28 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
 
     $this->scope = $this->rootSpan->activate();
     $this->isSpanInitialized = TRUE;
+  }
+
+  /**
+   * Creates a span name for request from components.
+   *
+   * Formats to string: "$method $uri [($type)]".
+   *
+   * @param mixed $method
+   *   An HTTP method name: GET, PUT, POST, etc.
+   * @param mixed $uri
+   *   An URI.
+   * @param mixed $type
+   *   A type name, that will added to the end of the name.
+   *
+   * @return string
+   */
+  protected function createSpanName(string $method, string $uri, string $type = NULL): string {
+    $name = $method . ' ' . $uri;
+    if ($type) {
+      $name .= " ($type)";
+    }
+    return $name;
   }
 
 }
