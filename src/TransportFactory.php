@@ -53,11 +53,15 @@ class TransportFactory {
     $endpoint =
       getenv(Variables::OTEL_EXPORTER_OTLP_ENDPOINT)
       ?: $settings->get(OpentelemetryTracerService::SETTING_ENDPOINT)
-      ?: OpentelemetryTracerService::ENDPOINT_FALLBACK;
+      ?: NULL;
+
+    if (empty($endpoint)) {
+      return $this->createDummyTransport();
+    }
 
     $protocol =
       getenv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL)
-      // ?: $settings->get(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
+      ?: $settings->get(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
       ?: OpentelemetryTracerService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK;
 
     $contentType = Protocols::contentType($protocol);
@@ -66,12 +70,20 @@ class TransportFactory {
     }
     catch (\Exception $e) {
       $this->messenger->addError('OpenTelemetry transport is failed on initialization, activated StreamTransport as a fallback');
-
-      // Creating a dummy transport as a fallback.
-      $stream = fopen('/dev/null', 'w', FALSE);
-      $transportFactory = new StreamTransportFactory();
-      $transport = $transportFactory->create($stream, $contentType);
+      $transport = $this->createDummyTransport();
     }
+    return $transport;
+  }
+
+  /**
+   * Creates a dummy transport that does nothing.
+   */
+  private function createDummyTransport(): TransportInterface {
+    // Creating a dummy transport as a fallback.
+    $stream = fopen('/dev/null', 'w', FALSE);
+    $transportFactory = new StreamTransportFactory();
+    $contentType = Protocols::contentType(Protocols::HTTP_PROTOBUF);
+    $transport = $transportFactory->create($stream, $contentType);
     return $transport;
   }
 

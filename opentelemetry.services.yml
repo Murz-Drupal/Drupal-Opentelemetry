@@ -54,11 +54,11 @@ services:
     tags:
       - { name: event_subscriber }
 
-  Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
-    arguments:
-      - '@opentelemetry.tracer'
-    tags:
-      - { name: event_subscriber }
+  # Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
+  #   arguments:
+  #     - '@opentelemetry.tracer'
+  #   tags:
+  #     - { name: event_subscriber }
 
   logger.channel.opentelemetry:
     parent: logger.channel_base

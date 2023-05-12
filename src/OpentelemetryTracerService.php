@@ -52,11 +52,6 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   const SETTING_DEBUG_MODE = 'debug_mode';
 
   /**
-   * A fallback value for the endpoint.
-   */
-  const ENDPOINT_FALLBACK = 'http://localhost:4318/v1/traces';
-
-  /**
    * A fallback content type for the endpoint.
    */
   const OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK = KnownValues::VALUE_HTTP_PROTOBUF;
@@ -71,7 +66,7 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
    *
    * @var \OpenTelemetry\API\Trace\TracerInterface
    */
-  protected TracerInterface $tracer;
+  protected ?TracerInterface $tracer = NULL;
 
   /**
    * The trace id.
@@ -101,7 +96,6 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
     protected LoggerChannelInterface $logger,
     protected OpentelemetryTraceManager $opentelemetryTraceManager,
   ) {
-
     $settings = $this->configFactory->get(self::SETTINGS_KEY);
 
     // Attaching the Drupal logger to the tracer.

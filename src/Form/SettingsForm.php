@@ -2,6 +2,7 @@
 
 namespace Drupal\opentelemetry\Form;
 
+use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\Schema\Undefined;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -15,6 +16,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Configure opentelemetry settings for this site.
  */
 class SettingsForm extends ConfigFormBase {
+
+  /**
+   * The typed opentelemetry settings.
+   * @var \Drupal\Core\Config\Schema\Mapping
+   */
+  private Mapping $settingsTyped;
 
   /**
    * {@inheritdoc}
@@ -57,16 +64,12 @@ class SettingsForm extends ConfigFormBase {
     $spanForm = $this->openTelemetryTracer->getTracer()->spanBuilder('OpenTelemetry settings form')->startSpan();
     $settings = $this->config(OpentelemetryTracerService::SETTINGS_KEY);
     $this->settingsTyped = \Drupal::service('config.typed')->get('opentelemetry.settings');
-    // $x = \Drupal::service('config.typed')->get('opentelemetry.settings');
-    // $v = $x->get(OpentelemetryTracerService::SETTING_ENDPOINT);
     $form[OpentelemetryTracerService::SETTING_ENDPOINT] = [
       '#type' => 'url',
       '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_ENDPOINT),
-      '#description' => $this->t('URL to the OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>@url</code>', [
-        '@url' => OpentelemetryTracerService::ENDPOINT_FALLBACK,
-      ]),
+      '#description' => $this->t('URL to the OpenTelemetry endpoint. Set to empty to use a dummy transport. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>http://localhost:4318/v1/traces</code>'),
       '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_ENDPOINT),
-      '#required' => TRUE,
+      '#required' => FALSE,
     ];
     $form[OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL] = [
       '#type' => 'select',
