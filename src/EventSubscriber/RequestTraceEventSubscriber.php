@@ -213,6 +213,8 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       ->setParent($parent)
       ->startSpan();
 
+    $traceId = $this->rootSpan->getContext()->getTraceId();
+
     if ($this->isDebug) {
       \Drupal::messenger()->addStatus(
         $this->t('RequestTrace plugin started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
@@ -222,7 +224,6 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       );
     }
 
-    $traceId = $this->rootSpan->getContext()->getTraceId();
     $this->openTelemetryTracer->setTraceId($traceId);
 
     $this->scope = $this->rootSpan->activate();
