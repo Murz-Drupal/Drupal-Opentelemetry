@@ -4,6 +4,7 @@ namespace Drupal\opentelemetry\Form;
 
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\Schema\Undefined;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
@@ -19,6 +20,7 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * The typed opentelemetry settings.
+   *
    * @var \Drupal\Core\Config\Schema\Mapping
    */
   private Mapping $settingsTyped;
@@ -29,6 +31,7 @@ class SettingsForm extends ConfigFormBase {
   public function __construct(
     protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
     protected OpentelemetryTraceManager $opentelemetryTraceManager,
+    protected TypedConfigManagerInterface $configTyped,
   ) {
   }
 
@@ -40,6 +43,7 @@ class SettingsForm extends ConfigFormBase {
     return new static(
       $container->get('opentelemetry.tracer'),
       $container->get('plugin.manager.opentelemetry_trace'),
+      $container->get('config.typed'),
     );
   }
 
@@ -63,12 +67,23 @@ class SettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $spanForm = $this->openTelemetryTracer->getTracer()->spanBuilder('OpenTelemetry settings form')->startSpan();
     $settings = $this->config(OpentelemetryTracerService::SETTINGS_KEY);
-    $this->settingsTyped = \Drupal::service('config.typed')->get('opentelemetry.settings');
+    $this->settingsTyped = $this->configTyped->get('opentelemetry.settings');
     $form[OpentelemetryTracerService::SETTING_ENDPOINT] = [
       '#type' => 'url',
       '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_ENDPOINT),
-      '#description' => $this->t('URL to the OpenTelemetry endpoint. Set to empty to use a dummy transport. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>http://localhost:4318/v1/traces</code>'),
+      '#description' => $this->t('URL to the OpenTelemetry endpoint. Set to empty to disable uploading traces. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>@example</code>', [
+        '@example' => 'http://localhost:4318',
+      ]),
       '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_ENDPOINT),
+      '#required' => FALSE,
+    ];
+    $form[OpentelemetryTracerService::SETTING_AUTHORIZATION] = [
+      '#type' => 'textfield',
+      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_AUTHORIZATION),
+      '#description' => $this->t('The <code>Authorization</code> header value. Example: <code>@example</code>. Keep empty if no authorization is required.', [
+        '@example' => 'Bearer: wOMdCaSGS8JZc2Fva5',
+      ]),
+      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_AUTHORIZATION),
       '#required' => FALSE,
     ];
     $form[OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL] = [
@@ -95,7 +110,7 @@ class SettingsForm extends ConfigFormBase {
     $form[OpentelemetryTracerService::SETTING_SERVICE_NAME] = [
       '#type' => 'textfield',
       '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_SERVICE_NAME),
-      '#description' => $this->t('A name to use for the telemetry resource, eg "Drupal".'),
+      '#description' => $this->t('A name to use for the telemetry resource, example: <code>Drupal</code>.'),
       '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_SERVICE_NAME),
       '#required' => TRUE,
     ];
@@ -148,11 +163,15 @@ class SettingsForm extends ConfigFormBase {
       ->set(OpentelemetryTracerService::SETTING_DEBUG_MODE, $form_state->getValue(OpentelemetryTracerService::SETTING_DEBUG_MODE))
       ->set(OpentelemetryTracerService::SETTING_SERVICE_NAME, $form_state->getValue(OpentelemetryTracerService::SETTING_SERVICE_NAME))
       ->set(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS, $form_state->getValue(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS))
+      ->set(OpentelemetryTracerService::SETTING_AUTHORIZATION, $form_state->getValue(OpentelemetryTracerService::SETTING_AUTHORIZATION))
       ->save();
     parent::submitForm($form, $form_state);
   }
 
-  private function getSettingLabel($key, $fallback = NULL) {
+  /**
+   * Gets a label for a setting from typed settings object.
+   */
+  private function getSettingLabel(string $key, ?string $fallback = NULL) {
     try {
       $setting = $this->settingsTyped->get($key);
       if ($setting instanceof Undefined) {

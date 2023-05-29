@@ -120,10 +120,10 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    * Initializes the root span and the Request span on View event.
    *
    * The VIEW event occurs when the return value of a controller
-   * is not a Response instance
+   * is not a Response instance.
    *
-   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
-   *   The kernel request event.
+   * @param \Symfony\Component\HttpKernel\Event\ViewEvent $event
+   *   The kernel view event.
    */
   public function onView(ViewEvent $event): void {
     $this->isDebug = $this->openTelemetryTracer->isDebugMode();
@@ -195,6 +195,12 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     }
   }
 
+  /**
+   * Activates the root span.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   A request.
+   */
   private function activateRootSpan(Request $request) {
     if ($this->isSpanInitialized) {
       return;
@@ -205,7 +211,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       }
       return;
     }
-    $spanName = $this->createSpanName($request->getMethod(), $request->getRequestUri(), 'kernel');
+    $spanName = $this->createSpanName($request->getMethod(), $request->getRequestUri());
     $parent = TraceContextPropagator::getInstance()->extract($request->headers->all());
 
     $this->rootSpan = $tracer->spanBuilder($spanName)
@@ -235,14 +241,15 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    *
    * Formats to string: "$method $uri [($type)]".
    *
-   * @param mixed $method
+   * @param string $method
    *   An HTTP method name: GET, PUT, POST, etc.
-   * @param mixed $uri
+   * @param string $uri
    *   An URI.
-   * @param mixed $type
+   * @param string $type
    *   A type name, that will added to the end of the name.
    *
    * @return string
+   *   The combined span name.
    */
   protected function createSpanName(string $method, string $uri, string $type = NULL): string {
     $name = $method . ' ' . $uri;

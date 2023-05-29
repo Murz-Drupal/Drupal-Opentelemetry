@@ -7,14 +7,13 @@ use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\test_helpers\Stub\LoggerChannelFactoryStub;
 use Drupal\test_helpers\TestHelpers;
-use OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory;
 use OpenTelemetry\Contrib\Otlp\Protocols;
-use OpenTelemetry\Contrib\Otlp\SpanExporter;
+use OpenTelemetry\Contrib\Otlp\SpanExporterFactory;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
+use OpenTelemetry\SDK\Common\Export\TransportInterface;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
-use OpenTelemetry\SDK\Common\Export\Stream\StreamTransport;
 
 /**
  * @coversDefaultClass \Drupal\opentelemetry\OpentelemetryTracerService
@@ -40,9 +39,9 @@ class OpentelemetryTracerServiceTest extends UnitTestCase {
    */
   public function testServiceDefaultSettings() {
     $settinsFallback = [
-      OpentelemetryTracerService::SETTING_ENDPOINT => 'http://localhost:4318/v1/traces',
+      OpentelemetryTracerService::SETTING_ENDPOINT => 'http://localhost:4318',
       OpentelemetryTracerService::SETTING_SERVICE_NAME => OpentelemetryTracerService::SERVICE_NAME_FALLBACK,
-      OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL => 'grpc',
+      OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL => 'http/protobuf',
     ];
     TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryTracerService::SETTINGS_KEY, $settinsFallback);
     $service = $this->initTracerService();
@@ -56,7 +55,7 @@ class OpentelemetryTracerServiceTest extends UnitTestCase {
   public function testServiceCustomSettings() {
     // Settings from config.
     $settings = [
-      OpentelemetryTracerService::SETTING_ENDPOINT => 'https://collector:80/api/v2/spans',
+      OpentelemetryTracerService::SETTING_ENDPOINT => 'https://collector:80',
       OpentelemetryTracerService::SETTING_SERVICE_NAME => 'My Drupal',
       OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL => 'http/json',
     ];
@@ -72,7 +71,7 @@ class OpentelemetryTracerServiceTest extends UnitTestCase {
   public function testServiceCustomSettingsFromEnv() {
     // Settings from config.
     $settings = [
-      OpentelemetryTracerService::SETTING_ENDPOINT => 'https://collector:80/api/v2/spans',
+      OpentelemetryTracerService::SETTING_ENDPOINT => 'https://collector:80',
       OpentelemetryTracerService::SETTING_SERVICE_NAME => 'My Drupal',
       OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL => 'http/ndjson',
     ];
@@ -110,6 +109,7 @@ class OpentelemetryTracerServiceTest extends UnitTestCase {
    *   An array with settings values.
    */
   private function checkServiceSettings(OpentelemetryTracerServiceInterface $service, array $settings) {
+    $apiSuffix = '/v1/traces';
     // Getting transport object via chain of dependencies.
     $tracer = $service->getTracer();
     $tracerSharedState = TestHelpers::getPrivateProperty($tracer, 'tracerSharedState');
@@ -117,17 +117,15 @@ class OpentelemetryTracerServiceTest extends UnitTestCase {
     $exporter = TestHelpers::getPrivateProperty($spanProcessor, 'exporter');
     $transport = TestHelpers::getPrivateProperty($exporter, 'transport');
 
-    // For empty endpoint here should be a StreamTransport
+    // For empty endpoint here should be a StreamTransport.
     if (empty($settings[OpentelemetryTracerService::SETTING_ENDPOINT])) {
-      $this->assertInstanceOf(StreamTransport::class, $transport);
-      $stream = TestHelpers::getPrivateProperty($transport, 'stream');
-      $this->assertEquals('/dev/null', stream_get_meta_data($stream)['uri']);
+      $this->assertInstanceOf(TransportInterface::class, $transport);
     }
     else {
       $transportEndpoint = TestHelpers::getPrivateProperty($transport, 'endpoint');
       $transportContentType = TestHelpers::getPrivateProperty($transport, 'contentType');
 
-      $this->assertEquals($settings[OpentelemetryTracerService::SETTING_ENDPOINT], $transportEndpoint);
+      $this->assertEquals($settings[OpentelemetryTracerService::SETTING_ENDPOINT] . $apiSuffix, $transportEndpoint);
       $this->assertEquals(Protocols::contentType($settings[OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL]), $transportContentType);
 
       $resourceAttributes = $tracerSharedState->getResource()->getAttributes();
@@ -141,10 +139,9 @@ class OpentelemetryTracerServiceTest extends UnitTestCase {
   private function initTracerService() {
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
     TestHelpers::service('plugin.manager.opentelemetry_trace', $this->createMock(OpentelemetryTraceManager::class));
-    TestHelpers::service('OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory', new OtlpHttpTransportFactory());
-    $transportFactory = TestHelpers::initService('Drupal\opentelemetry\TransportFactory');
-    $transport = $transportFactory->create();
-    $spanExporter = new SpanExporter($transport);
+    TestHelpers::service('OpenTelemetry\Contrib\Otlp\SpanExporterFactory', new SpanExporterFactory());
+    $spanExporterFactory = TestHelpers::initService('Drupal\opentelemetry\OpenTelemetrySpanExporterFactory');
+    $spanExporter = $spanExporterFactory->create();
     $spanProcessor = new SimpleSpanProcessor($spanExporter);
     $tracerProvider = new TracerProvider($spanProcessor);
     TestHelpers::service('OpenTelemetry\SDK\Trace\TracerProvider', $tracerProvider, TRUE);

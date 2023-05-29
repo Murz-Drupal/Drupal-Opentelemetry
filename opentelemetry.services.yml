@@ -13,29 +13,25 @@ services:
 
   OpenTelemetry\SDK\Trace\TracerProvider:
     arguments:
-      - '@OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor'
+      - ['@OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor']
 
   OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor:
     arguments:
       - '@OpenTelemetry\Contrib\Otlp\SpanExporter'
 
   OpenTelemetry\Contrib\Otlp\SpanExporter:
-    arguments:
-      - '@OpenTelemetry\SDK\Common\Export\TransportInterface'
-
-  OpenTelemetry\SDK\Common\Export\TransportInterface:
     factory:
-      - '@Drupal\opentelemetry\TransportFactory'
+      - '@Drupal\opentelemetry\OpenTelemetrySpanExporterFactory'
       - 'create'
 
-  Drupal\opentelemetry\TransportFactory:
+  Drupal\opentelemetry\OpenTelemetrySpanExporterFactory:
     arguments:
-      - '@OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory'
+      - '@OpenTelemetry\Contrib\Otlp\SpanExporterFactory'
       - '@config.factory'
       - '@logger.channel.opentelemetry'
       - '@messenger'
 
-  OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory: {}
+  OpenTelemetry\Contrib\Otlp\SpanExporterFactory: {}
 
   plugin.manager.opentelemetry_trace:
     class: Drupal\opentelemetry\OpentelemetryTraceManager
@@ -54,11 +50,11 @@ services:
     tags:
       - { name: event_subscriber }
 
-  # Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
-  #   arguments:
-  #     - '@opentelemetry.tracer'
-  #   tags:
-  #     - { name: event_subscriber }
+  Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
+    arguments:
+      - '@opentelemetry.tracer'
+    tags:
+      - { name: event_subscriber }
 
   logger.channel.opentelemetry:
     parent: logger.channel_base

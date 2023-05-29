@@ -5,6 +5,9 @@ opentelemetry.settings:
     endpoint:
       type: string
       label: Endpoint
+    authorization:
+      type: string
+      label: Authorization header
     otel_exporter_otlp_protocol:
       type: string
       label: OTEL Exporter protocol

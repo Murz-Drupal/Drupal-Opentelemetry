@@ -1,4 +1,5 @@
-endpoint: http://localhost:4318/v1/traces
+endpoint: http://localhost:4318
+authorization: ''
 otel_exporter_otlp_protocol: http/protobuf
 service_name: Drupal
 debug_mode: false

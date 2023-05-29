@@ -1,9 +1,0 @@
-# services:
-#   logger.syslog:
-#     class: Drupal\opentelemetry_syslog\Logger\OpenTelemetrySysLog
-#     arguments:
-#     - '@config.factory'
-#     - '@logger.log_message_parser'
-#     # - '@opentelemetry.tracer'
-#     tags:
-#       - { name: logger }

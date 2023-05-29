@@ -23,6 +23,14 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   const SETTINGS_KEY = 'opentelemetry.settings';
 
   /**
+   * A name for environment variable to skip settings reading.
+   *
+   * Can be used to skip loading settings, if all configuration is passed
+   * through the environment variables.
+   */
+  const SETTINGS_SKIP_READING = 'DRUPAL_OPENTELEMETRY_SETTINGS_SKIP_READING';
+
+  /**
    * A setting name to store the endpoint url.
    */
   const SETTING_ENDPOINT = 'endpoint';
@@ -47,9 +55,14 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   const SETTING_ENABLED_PLUGINS = 'span_plugins_enabled';
 
   /**
-   * A setting name to store debug mode status.
+   * A setting name to store the debug mode status.
    */
   const SETTING_DEBUG_MODE = 'debug_mode';
+
+  /**
+   * A setting name to store the authorization header.
+   */
+  const SETTING_AUTHORIZATION = 'authorization';
 
   /**
    * A fallback content type for the endpoint.
@@ -57,7 +70,7 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   const OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK = KnownValues::VALUE_HTTP_PROTOBUF;
 
   /**
-   * A fallback value for service name.
+   * A fallback value for the service name.
    */
   const SERVICE_NAME_FALLBACK = 'Drupal';
 
@@ -146,21 +159,23 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   }
 
   /**
-   * The trace id.
+   * Gets the trace id.
    *
    * @return string
+   *   The trace id.
    */
   public function getTraceId(): ?string {
     return $this->traceId;
   }
 
   /**
-   * The trace id.
+   * Sets the trace id.
    *
    * @param string $traceId
    *   The trace id.
    *
    * @return self
+   *   Returns the self object.
    */
   public function setTraceId(string $traceId): self {
     $this->traceId = $traceId;

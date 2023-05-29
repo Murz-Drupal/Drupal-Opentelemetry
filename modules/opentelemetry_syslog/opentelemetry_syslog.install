@@ -10,5 +10,7 @@
  */
 function opentelemetry_syslog_install() {
   // Replacing the syslog format to add trace_id value to the end.
-  \Drupal::configFactory()->getEditable('syslog.settings')->set('format', '!base_url|!timestamp|!type|!ip|!request_uri|!referer|!uid|!link|!message|!trace_id')->save();
+  \Drupal::configFactory()->getEditable('syslog.settings')
+    ->set('format', '!base_url|!timestamp|!type|!ip|!request_uri|!referer|!uid|!link|!message|!trace_id')
+    ->save();
 }
