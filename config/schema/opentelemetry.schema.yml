@@ -25,3 +25,6 @@ opentelemetry.settings:
       label: Enabled Span Plugins
       sequence:
         type: string
+    log_requests:
+      type: boolean
+      label: Log every request to Logger

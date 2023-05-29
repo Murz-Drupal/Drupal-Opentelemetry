@@ -5,3 +5,4 @@ service_name: Drupal
 debug_mode: false
 logger_deduplication: true
 span_plugins_enabled: []
+log_requests: false

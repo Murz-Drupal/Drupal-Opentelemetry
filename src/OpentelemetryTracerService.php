@@ -65,6 +65,11 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   const SETTING_AUTHORIZATION = 'authorization';
 
   /**
+   * A setting name to store the log requests option.
+   */
+  const SETTING_LOG_REQUESTS = 'log_requests';
+
+  /**
    * A fallback content type for the endpoint.
    */
   const OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK = KnownValues::VALUE_HTTP_PROTOBUF;
@@ -180,6 +185,14 @@ class OpentelemetryTracerService implements OpentelemetryTracerServiceInterface 
   public function setTraceId(string $traceId): self {
     $this->traceId = $traceId;
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isLogRequestsEnabled(): bool {
+    $settings = $this->configFactory->get(self::SETTINGS_KEY);
+    return $settings->get(self::SETTING_LOG_REQUESTS) ?: FALSE;
   }
 
 }

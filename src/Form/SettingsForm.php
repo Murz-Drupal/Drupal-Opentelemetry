@@ -146,6 +146,12 @@ class SettingsForm extends ConfigFormBase {
         $form[OpentelemetryTracerService::SETTING_ENABLED_PLUGINS][$pluginId] = $pluginDescription;
       }
     }
+    $form[OpentelemetryTracerService::SETTING_LOG_REQUESTS] = [
+      '#type' => 'checkbox',
+      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_LOG_REQUESTS),
+      '#description' => $this->t("Log every request to Drupal Logger as a separate debug record."),
+      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_LOG_REQUESTS),
+    ];
     $spanParentForm = $this->openTelemetryTracer->getTracer()->spanBuilder('parent buildForm')->startSpan();
     $form = parent::buildForm($form, $form_state);
     $spanParentForm->end();
@@ -164,6 +170,7 @@ class SettingsForm extends ConfigFormBase {
       ->set(OpentelemetryTracerService::SETTING_SERVICE_NAME, $form_state->getValue(OpentelemetryTracerService::SETTING_SERVICE_NAME))
       ->set(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS, $form_state->getValue(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS))
       ->set(OpentelemetryTracerService::SETTING_AUTHORIZATION, $form_state->getValue(OpentelemetryTracerService::SETTING_AUTHORIZATION))
+      ->set(OpentelemetryTracerService::SETTING_LOG_REQUESTS, $form_state->getValue(OpentelemetryTracerService::SETTING_LOG_REQUESTS))
       ->save();
     parent::submitForm($form, $form_state);
   }

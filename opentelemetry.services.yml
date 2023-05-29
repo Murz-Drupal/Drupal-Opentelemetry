@@ -41,6 +41,7 @@ services:
     arguments:
       - '@opentelemetry.tracer'
       - '@messenger'
+      - '@logger.channel.opentelemetry'
     tags:
       - { name: event_subscriber }
 

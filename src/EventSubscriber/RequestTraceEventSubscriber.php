@@ -2,6 +2,8 @@
 
 namespace Drupal\opentelemetry\EventSubscriber;
 
+use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
@@ -66,10 +68,13 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    *   An OpenTelemetry service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   A Drupal Messenger.
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   A logger.
    */
   public function __construct(
     protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
     protected MessengerInterface $messenger,
+    protected LoggerChannelInterface $logger,
   ) {
   }
 
@@ -187,7 +192,14 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     if (!$this->isSpanInitialized) {
       return;
     }
+
     if (isset($this->rootSpan)) {
+      if ($this->openTelemetryTracer->isLogRequestsEnabled()) {
+        $this->logger->log(RfcLogLevel::DEBUG, 'Request @request, trace id @trace_id', [
+          '@request' => $this->rootSpan->getName(),
+          '@trace_id' => $this->rootSpan->getContext()->getTraceId(),
+        ]);
+      }
       $this->rootSpan->end();
     }
     if (isset($this->scope)) {
