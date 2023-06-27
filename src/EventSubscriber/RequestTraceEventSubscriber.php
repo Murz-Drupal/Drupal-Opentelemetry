@@ -9,7 +9,10 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\Context\Context;
+use OpenTelemetry\Context\Propagation\PropagationSetterInterface;
 use OpenTelemetry\Context\ScopeInterface;
+use OpenTelemetry\Contrib\Propagation\TraceResponse\TraceResponsePropagator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
@@ -166,6 +169,24 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     }
     $this->requestSpan->setAttribute('http.status_code', $event->getResponse()->getStatusCode());
     $this->requestSpan->addEvent('Response');
+    $scope = Context::storage()->scope();
+    if ($scope) {
+      $response = $event->getResponse();
+      // Create a PropagationSetterInterface that knows how to inject response
+      // headers.
+      $propagationSetter = new class implements PropagationSetterInterface {
+
+        /**
+         * {@inheritdoc}
+         */
+        public function set(&$carrier, string $key, string $value): void {
+          $carrier->headers->set($key, $value);
+        }
+
+      };
+      $propagator = new TraceResponsePropagator();
+      $propagator->inject($response, $propagationSetter, $scope->context());
+    }
   }
 
   /**
