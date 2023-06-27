@@ -50,7 +50,7 @@ class OpenTelemetrySpanExporterFactory {
       );
 
       if ($authorization = $settings->get(OpentelemetryTracerService::SETTING_AUTHORIZATION)) {
-        $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_HEADERS, 'Authorization' . ': ' . $authorization);
+        $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_HEADERS, "Authorization=$authorization");
       }
 
       $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_ENDPOINT,
