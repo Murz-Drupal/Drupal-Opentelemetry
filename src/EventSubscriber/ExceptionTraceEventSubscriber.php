@@ -30,7 +30,7 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     return [
-      KernelEvents::EXCEPTION => 'onException',
+      KernelEvents::EXCEPTION => ['onException', 100],
     ];
   }
 
