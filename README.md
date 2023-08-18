@@ -10,8 +10,8 @@ preparing the Request, SQL  queries, etc.
 ### Usage example in your custom code:
 
 ```php
-$this->openTelemetryTracer = \Drupal::service('opentelemetry.tracer');
-$tracer = $this->openTelemetryTracer->getTracer();
+$this->openTelemetry = \Drupal::service('opentelemetry.opentelemetry');
+$tracer = $this->openTelemetry->getTracer();
 $span = $tracer->spanBuilder('My custom operation')->startSpan();
 $span->setAttribute('foo', 'bar');
 // Do some stuff.

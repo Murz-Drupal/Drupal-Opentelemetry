@@ -7,9 +7,9 @@ use Drupal\Core\Config\Schema\Undefined;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\opentelemetry\OpentelemetryService;
+use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
-use Drupal\opentelemetry\OpentelemetryTracerService;
-use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -29,7 +29,7 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function __construct(
-    protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
+    protected OpentelemetryServiceInterface $openTelemetry,
     protected OpentelemetryTraceManager $opentelemetryTraceManager,
     protected TypedConfigManagerInterface $configTyped,
   ) {
@@ -41,7 +41,7 @@ class SettingsForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     // Instantiates this form class.
     return new static(
-      $container->get('opentelemetry.tracer'),
+      $container->get('opentelemetry.opentelemetry'),
       $container->get('plugin.manager.opentelemetry_trace'),
       $container->get('config.typed'),
     );
@@ -58,41 +58,41 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
-    return [OpentelemetryTracerService::SETTINGS_KEY];
+    return [OpentelemetryService::SETTINGS_KEY];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $spanForm = $this->openTelemetryTracer->getTracer()->spanBuilder('OpenTelemetry settings form')->startSpan();
-    $settings = $this->config(OpentelemetryTracerService::SETTINGS_KEY);
+    $spanForm = $this->openTelemetry->getTracer()->spanBuilder('OpenTelemetry settings form')->startSpan();
+    $settings = $this->config(OpentelemetryService::SETTINGS_KEY);
     $this->settingsTyped = $this->configTyped->get('opentelemetry.settings');
-    $form[OpentelemetryTracerService::SETTING_ENDPOINT] = [
+    $form[OpentelemetryService::SETTING_ENDPOINT] = [
       '#type' => 'url',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_ENDPOINT),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_ENDPOINT),
       '#description' => $this->t('URL to the OpenTelemetry endpoint. Set to empty to disable uploading traces. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>@example</code>', [
         '@example' => 'http://localhost:4318',
       ]),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_ENDPOINT),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_ENDPOINT),
       '#required' => FALSE,
     ];
-    $form[OpentelemetryTracerService::SETTING_AUTHORIZATION] = [
+    $form[OpentelemetryService::SETTING_AUTHORIZATION] = [
       '#type' => 'textfield',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_AUTHORIZATION),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_AUTHORIZATION),
       '#description' => $this->t('The <code>Authorization</code> header value. Example: <code>@example</code>. Keep empty if no authorization is required.', [
         '@example' => 'Bearer: wOMdCaSGS8JZc2Fva5',
       ]),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_AUTHORIZATION),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_AUTHORIZATION),
       '#required' => FALSE,
     ];
-    $form[OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL] = [
+    $form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL] = [
       '#type' => 'select',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
       '#description' => $this->t('OpenTelemetry protocol, default value: <code>@url</code>', [
-        '@url' => OpentelemetryTracerService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK,
+        '@url' => OpentelemetryService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK,
       ]),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
       '#options' => [
         Protocols::GRPC => Protocols::GRPC,
         Protocols::HTTP_PROTOBUF => Protocols::HTTP_PROTOBUF,
@@ -101,27 +101,27 @@ class SettingsForm extends ConfigFormBase {
       ],
       '#required' => TRUE,
     ];
-    $form[OpentelemetryTracerService::SETTING_DEBUG_MODE] = [
+    $form[OpentelemetryService::SETTING_DEBUG_MODE] = [
       '#type' => 'checkbox',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_DEBUG_MODE),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_DEBUG_MODE),
       '#description' => $this->t('Enables debug mode which outputs trace ids and span ids to the Drupal messenger.'),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_DEBUG_MODE),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_DEBUG_MODE),
     ];
-    $form[OpentelemetryTracerService::SETTING_SERVICE_NAME] = [
+    $form[OpentelemetryService::SETTING_SERVICE_NAME] = [
       '#type' => 'textfield',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_SERVICE_NAME),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_SERVICE_NAME),
       '#description' => $this->t('A name to use for the telemetry resource, example: <code>Drupal</code>.'),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_SERVICE_NAME),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_SERVICE_NAME),
       '#required' => TRUE,
     ];
-    $form[OpentelemetryTracerService::SETTING_LOGGER_DEDUPLICATION] = [
+    $form[OpentelemetryService::SETTING_LOGGER_DEDUPLICATION] = [
       '#type' => 'checkbox',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_LOGGER_DEDUPLICATION),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_LOGGER_DEDUPLICATION),
       '#description' => $this->t("Trace exporter can provide a lot of errors if the connection is failed, that can slow down your site. Enable this option to suppress logging prevent logging identical messages in a row messages in a row."),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_LOGGER_DEDUPLICATION),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_LOGGER_DEDUPLICATION),
     ];
     if ($tracePlugins = $this->opentelemetryTraceManager->getDefinitions()) {
-      $pluginsEnabled = $settings->get(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS) ?? [];
+      $pluginsEnabled = $settings->get(OpentelemetryService::SETTING_ENABLED_PLUGINS) ?? [];
       $pluginsAvailable = [];
       $pluginsDescription = [];
       foreach ($tracePlugins as $definition) {
@@ -136,23 +136,23 @@ class SettingsForm extends ConfigFormBase {
           $pluginsDescription[$id]['#description'] .= '<br/>' . $this->t('Reason for unavailability: @reason', ['@reason' => $instance->getUnavailableReason()]);
         }
       }
-      $form[OpentelemetryTracerService::SETTING_ENABLED_PLUGINS] = [
+      $form[OpentelemetryService::SETTING_ENABLED_PLUGINS] = [
         '#type' => 'checkboxes',
-        '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS),
+        '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_ENABLED_PLUGINS),
         '#options' => $pluginsAvailable,
         '#default_value' => $pluginsEnabled,
       ];
       foreach ($pluginsDescription as $pluginId => $pluginDescription) {
-        $form[OpentelemetryTracerService::SETTING_ENABLED_PLUGINS][$pluginId] = $pluginDescription;
+        $form[OpentelemetryService::SETTING_ENABLED_PLUGINS][$pluginId] = $pluginDescription;
       }
     }
-    $form[OpentelemetryTracerService::SETTING_LOG_REQUESTS] = [
+    $form[OpentelemetryService::SETTING_LOG_REQUESTS] = [
       '#type' => 'checkbox',
-      '#title' => $this->getSettingLabel(OpentelemetryTracerService::SETTING_LOG_REQUESTS),
+      '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_LOG_REQUESTS),
       '#description' => $this->t("Log every request to Drupal Logger as a separate debug record."),
-      '#default_value' => $settings->get(OpentelemetryTracerService::SETTING_LOG_REQUESTS),
+      '#default_value' => $settings->get(OpentelemetryService::SETTING_LOG_REQUESTS),
     ];
-    $spanParentForm = $this->openTelemetryTracer->getTracer()->spanBuilder('parent buildForm')->startSpan();
+    $spanParentForm = $this->openTelemetry->getTracer()->spanBuilder('parent buildForm')->startSpan();
     $form = parent::buildForm($form, $form_state);
     $spanParentForm->end();
     $spanForm->end();
@@ -163,14 +163,14 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->config(OpentelemetryTracerService::SETTINGS_KEY)
-      ->set(OpentelemetryTracerService::SETTING_ENDPOINT, $form_state->getValue(OpentelemetryTracerService::SETTING_ENDPOINT))
-      ->set(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL, $form_state->getValue(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL))
-      ->set(OpentelemetryTracerService::SETTING_DEBUG_MODE, $form_state->getValue(OpentelemetryTracerService::SETTING_DEBUG_MODE))
-      ->set(OpentelemetryTracerService::SETTING_SERVICE_NAME, $form_state->getValue(OpentelemetryTracerService::SETTING_SERVICE_NAME))
-      ->set(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS, $form_state->getValue(OpentelemetryTracerService::SETTING_ENABLED_PLUGINS))
-      ->set(OpentelemetryTracerService::SETTING_AUTHORIZATION, $form_state->getValue(OpentelemetryTracerService::SETTING_AUTHORIZATION))
-      ->set(OpentelemetryTracerService::SETTING_LOG_REQUESTS, $form_state->getValue(OpentelemetryTracerService::SETTING_LOG_REQUESTS))
+    $this->config(OpentelemetryService::SETTINGS_KEY)
+      ->set(OpentelemetryService::SETTING_ENDPOINT, $form_state->getValue(OpentelemetryService::SETTING_ENDPOINT))
+      ->set(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL, $form_state->getValue(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL))
+      ->set(OpentelemetryService::SETTING_DEBUG_MODE, $form_state->getValue(OpentelemetryService::SETTING_DEBUG_MODE))
+      ->set(OpentelemetryService::SETTING_SERVICE_NAME, $form_state->getValue(OpentelemetryService::SETTING_SERVICE_NAME))
+      ->set(OpentelemetryService::SETTING_ENABLED_PLUGINS, $form_state->getValue(OpentelemetryService::SETTING_ENABLED_PLUGINS))
+      ->set(OpentelemetryService::SETTING_AUTHORIZATION, $form_state->getValue(OpentelemetryService::SETTING_AUTHORIZATION))
+      ->set(OpentelemetryService::SETTING_LOG_REQUESTS, $form_state->getValue(OpentelemetryService::SETTING_LOG_REQUESTS))
       ->save();
     parent::submitForm($form, $form_state);
   }

@@ -41,26 +41,26 @@ class OpenTelemetrySpanExporterFactory {
    *   The OT transport.
    */
   public function create(): SpanExporterInterface {
-    if (getenv(OpentelemetryTracerService::SETTINGS_SKIP_READING) == FALSE) {
-      $settings = $this->configFactory->get(OpentelemetryTracerService::SETTINGS_KEY);
+    if (getenv(OpentelemetryService::SETTINGS_SKIP_READING) == FALSE) {
+      $settings = $this->configFactory->get(OpentelemetryService::SETTINGS_KEY);
 
       $this->fillEnv(Variables::OTEL_SERVICE_NAME,
-        $settings->get(OpentelemetryTracerService::SETTING_SERVICE_NAME)
-        ?: OpentelemetryTracerService::SERVICE_NAME_FALLBACK
+        $settings->get(OpentelemetryService::SETTING_SERVICE_NAME)
+        ?: OpentelemetryService::SERVICE_NAME_FALLBACK
       );
 
-      if ($authorization = $settings->get(OpentelemetryTracerService::SETTING_AUTHORIZATION)) {
+      if ($authorization = $settings->get(OpentelemetryService::SETTING_AUTHORIZATION)) {
         $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_HEADERS, "Authorization=$authorization");
       }
 
       $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_ENDPOINT,
-        $settings->get(OpentelemetryTracerService::SETTING_ENDPOINT)
+        $settings->get(OpentelemetryService::SETTING_ENDPOINT)
         ?: NULL
       );
 
       $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL,
-        $settings->get(OpentelemetryTracerService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
-        ?: OpentelemetryTracerService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK
+        $settings->get(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
+        ?: OpentelemetryService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK
       );
     }
 

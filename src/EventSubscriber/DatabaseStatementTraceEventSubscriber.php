@@ -5,7 +5,7 @@ namespace Drupal\opentelemetry\EventSubscriber;
 use Drupal\Core\Database\Event\DatabaseEvent;
 use Drupal\Core\Database\Event\StatementExecutionEndEvent;
 use Drupal\Core\Database\Event\StatementExecutionStartEvent;
-use Drupal\opentelemetry\OpentelemetryTracerServiceInterface;
+use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -33,11 +33,11 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
   /**
    * Constructs the Database Event Subscriber.
    *
-   * @param \Drupal\opentelemetry\OpentelemetryTracerServiceInterface $openTelemetryTracer
+   * @param \Drupal\opentelemetry\OpentelemetryServiceInterface $openTelemetry
    *   An OpenTelemetry service.
    */
   public function __construct(
-    protected OpentelemetryTracerServiceInterface $openTelemetryTracer,
+    protected OpentelemetryServiceInterface $openTelemetry,
   ) {
     // This produces a ServiceCircularReferenceException exception.
     // @todo Investigate this.
@@ -48,7 +48,9 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-
+    if (!class_exists(StatementExecutionStartEvent::class)) {
+      return [];
+    }
     return [
       KernelEvents::REQUEST => 'onKernelRequest',
       StatementExecutionStartEvent::class => 'onStatementExecutionStart',
@@ -63,7 +65,7 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
    *   The database event.
    */
   public function onStatementExecutionStart(StatementExecutionStartEvent $event): void {
-    if (!$tracer = $this->openTelemetryTracer->getTracer()) {
+    if (!$tracer = $this->openTelemetry->getTracer()) {
       return;
     }
     // @todo Rework this to $this->queryCounter.
@@ -75,7 +77,7 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
     static $driver;
     $driver ??= \Drupal::database()->driver();
 
-    $tracer = $this->openTelemetryTracer->getTracer();
+    $tracer = $this->openTelemetry->getTracer();
     $this->span = $tracer->spanBuilder('query-' . $queryCounter)->startSpan();
 
     $this->span->setAttribute('db.system', $driver);
@@ -90,7 +92,7 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
    *   The database event.
    */
   public function onStatementExecutionEnd(StatementExecutionEndEvent $event): void {
-    if (!$this->openTelemetryTracer->getTracer()) {
+    if (!$this->openTelemetry->getTracer()) {
       return;
     }
     $this->span->end();
@@ -104,8 +106,8 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
    */
   public function onKernelRequest(RequestEvent $event) {
     if (
-      !$this->openTelemetryTracer->getTracer()
-      || !$this->openTelemetryTracer->isPluginEnabled('database_statement')
+      !$this->openTelemetry->getTracer()
+      || !$this->openTelemetry->isPluginEnabled('database_statement')
       || !class_exists(DatabaseEvent::class)
     ) {
       return;
@@ -116,7 +118,6 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
         StatementExecutionEndEvent::class,
       ]
     );
-
   }
 
 }

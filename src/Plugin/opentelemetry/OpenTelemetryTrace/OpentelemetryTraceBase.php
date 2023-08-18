@@ -13,7 +13,7 @@ abstract class OpentelemetryTraceBase extends PluginBase {
    * Checks if plugin is available by checking all requirements.
    *
    * @return bool
-   *   TRUE if all requirements are present.
+   *   True if all requirements are present.
    */
   public function isAvailable(): bool {
     return TRUE;

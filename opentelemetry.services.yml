@@ -2,14 +2,22 @@ parameters:
   tracer_name: drupal.module.opentelemetry.default
 
 services:
-  opentelemetry.tracer:
-    class: Drupal\opentelemetry\OpentelemetryTracerService
+  logger.channel.opentelemetry:
+    parent: logger.channel_base
+    arguments:
+      - 'opentelemetry'
+
+  opentelemetry.opentelemetry:
+    class: Drupal\opentelemetry\OpentelemetryService
     arguments:
       - '@OpenTelemetry\SDK\Trace\TracerProvider'
       - '%tracer_name%'
       - '@config.factory'
       - '@logger.channel.opentelemetry'
       - '@plugin.manager.opentelemetry_trace'
+      - '@request_stack'
+    tags:
+      - name: event_subscriber
 
   OpenTelemetry\SDK\Trace\TracerProvider:
     arguments:
@@ -39,25 +47,20 @@ services:
 
   Drupal\opentelemetry\EventSubscriber\RequestTraceEventSubscriber:
     arguments:
-      - '@opentelemetry.tracer'
+      - '@opentelemetry.opentelemetry'
       - '@messenger'
       - '@logger.channel.opentelemetry'
     tags:
-      - { name: event_subscriber }
+      - name: event_subscriber
 
   Drupal\opentelemetry\EventSubscriber\DatabaseStatementTraceEventSubscriber:
     arguments:
-      - '@opentelemetry.tracer'
+      - '@opentelemetry.opentelemetry'
     tags:
-      - { name: event_subscriber }
+      - name: event_subscriber
 
   Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
     arguments:
-      - '@opentelemetry.tracer'
+      - '@opentelemetry.opentelemetry'
     tags:
-      - { name: event_subscriber }
-
-  logger.channel.opentelemetry:
-    parent: logger.channel_base
-    arguments:
-      - 'opentelemetry'
+      - name: event_subscriber

@@ -9,7 +9,7 @@ use OpenTelemetry\API\Trace\TracerInterface;
  *
  * @package Drupal\opentelemetry
  */
-interface OpentelemetryTracerServiceInterface {
+interface OpentelemetryServiceInterface {
 
   /**
    * Returns the tracer instance.
@@ -27,9 +27,9 @@ interface OpentelemetryTracerServiceInterface {
    *
    * @return bool|null
    *   The plugin status:
-   *   - NULL if missing in settings.
-   *   - TRUE if enabled.
-   *   - FALSE if disabled.
+   *   - Null if missing in settings.
+   *   - True if enabled.
+   *   - False if disabled.
    */
   public function isPluginEnabled(string $pluginId): ?bool;
 
