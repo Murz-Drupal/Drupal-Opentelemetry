@@ -9,6 +9,7 @@ use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use OpenTelemetry\API\Common\Log\LoggerHolder;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+use OpenTelemetry\API\Trace\SpanContextValidator;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -83,6 +84,11 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   const SETTING_LOG_REQUESTS = 'log_requests';
 
   /**
+   * A setting name to store the disable flag.
+   */
+  const SETTING_DISABLE = 'disable';
+
+  /**
    * A fallback content type for the endpoint.
    */
   const OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK = KnownValues::VALUE_HTTP_PROTOBUF;
@@ -146,6 +152,11 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   ) {
     $this->settings = $this->configFactory->get(self::SETTINGS_KEY);
 
+    // Doing nothing if the disable flag is active.
+    if ($this->settings->get(self::SETTING_DISABLE) ?? FALSE) {
+      return;
+    }
+
     // Attaching the Drupal logger to the tracer.
     if ($this->settings->get(self::SETTING_LOGGER_DEDUPLICATION) ?? TRUE) {
       $logger = new OpentelemetryLoggerProxy($this->logger);
@@ -184,8 +195,15 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   /**
    * {@inheritdoc}
    */
+  public function hasTracer(): bool {
+    return isset($this->tracer) && !empty($this->tracer);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getTracer(): ?TracerInterface {
-    return $this->tracer;
+    return $this->tracer ?? NULL;
   }
 
   /**
@@ -221,6 +239,9 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    *   The trace id.
    */
   public function getTraceId(): ?string {
+    if (!isset($this->rootSpan)) {
+      return NULL;
+    }
     return $this->rootSpan->getContext()->getTraceId();
   }
 
@@ -311,8 +332,12 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    * For case if the terminate event is not fired by some reason.
    */
   public function __destruct() {
-    if (!$this->rootScope::DETACHED) {
-      $this->rootScope->detach();
+    if (isset($this->rootScope) && !empty($this->rootScope)) {
+      $span = $this->getCurrentSpan();
+      $spanId = $span->getContext()->getSpanId();
+      if ($spanId !== SpanContextValidator::INVALID_SPAN) {
+        $this->rootScope->detach();
+      }
     }
   }
 

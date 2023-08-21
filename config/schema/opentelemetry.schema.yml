@@ -5,6 +5,9 @@ opentelemetry.settings:
     endpoint:
       type: string
       label: Endpoint
+    disable:
+      type: boolean
+      label: Disable
     authorization:
       type: string
       label: Authorization header
