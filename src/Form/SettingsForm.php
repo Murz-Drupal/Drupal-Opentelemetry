@@ -41,7 +41,7 @@ class SettingsForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     // Instantiates this form class.
     return new static(
-      $container->get('opentelemetry.opentelemetry'),
+      $container->get('opentelemetry'),
       $container->get('plugin.manager.opentelemetry_trace'),
       $container->get('config.typed'),
     );

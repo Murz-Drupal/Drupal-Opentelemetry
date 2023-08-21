@@ -154,7 +154,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('OpenTelemetry\SDK\Trace\TracerProvider', $tracerProvider, TRUE);
 
     /** @var \Drupal\opentelemetry\OpentelemetryServiceInterface $service */
-    $service = TestHelpers::initService('opentelemetry.opentelemetry');
+    $service = TestHelpers::initService('opentelemetry');
     return $service;
   }
 

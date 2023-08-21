@@ -7,7 +7,7 @@ services:
     arguments:
       - 'opentelemetry'
 
-  opentelemetry.opentelemetry:
+  opentelemetry:
     class: Drupal\opentelemetry\OpentelemetryService
     arguments:
       - '@OpenTelemetry\SDK\Trace\TracerProvider'
@@ -47,7 +47,7 @@ services:
 
   Drupal\opentelemetry\EventSubscriber\RequestTraceEventSubscriber:
     arguments:
-      - '@opentelemetry.opentelemetry'
+      - '@opentelemetry'
       - '@messenger'
       - '@logger.channel.opentelemetry'
     tags:
@@ -55,12 +55,16 @@ services:
 
   Drupal\opentelemetry\EventSubscriber\DatabaseStatementTraceEventSubscriber:
     arguments:
-      - '@opentelemetry.opentelemetry'
+      - '@opentelemetry'
     tags:
       - name: event_subscriber
 
   Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
     arguments:
-      - '@opentelemetry.opentelemetry'
+      - '@opentelemetry'
     tags:
       - name: event_subscriber
+
+  opentelemetry.tracer:
+    alias: opentelemetry
+    deprecated: The "%alias_id%" alias is deprecated. Renamed to just "opentelemetry" and will be removed in 1.0.
