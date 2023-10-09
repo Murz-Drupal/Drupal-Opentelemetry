@@ -2,8 +2,10 @@
 
 namespace Drupal\Tests\opentelemetry\Unit;
 
+use Drupal\opentelemetry\OpentelemetryLoggerProxy;
 use Drupal\opentelemetry\OpentelemetryService;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
+use Drupal\opentelemetry\OpenTelemetrySpanExporterFactory;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
 use Drupal\test_helpers\Stub\LoggerChannelFactoryStub;
 use Drupal\test_helpers\TestHelpers;
@@ -188,12 +190,13 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('request_stack')->push($request);
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
     TestHelpers::service('plugin.manager.opentelemetry_trace', $this->createMock(OpentelemetryTraceManager::class));
-    TestHelpers::service('OpenTelemetry\Contrib\Otlp\SpanExporterFactory', new SpanExporterFactory());
-    $spanExporterFactory = TestHelpers::initService('Drupal\opentelemetry\OpenTelemetrySpanExporterFactory');
+    TestHelpers::service(SpanExporterFactory::class, TestHelpers::initServiceFromYaml(dirname(__FILE__) . '/../../../opentelemetry.services.yml', SpanExporterFactory::class));
+    TestHelpers::service(OpentelemetryLoggerProxy::class, TestHelpers::initService(OpentelemetryLoggerProxy::class));
+    $spanExporterFactory = TestHelpers::initService(OpenTelemetrySpanExporterFactory::class);
     $spanExporter = $spanExporterFactory->create();
     $spanProcessor = new SimpleSpanProcessor($spanExporter);
     $tracerProvider = new TracerProvider($spanProcessor);
-    TestHelpers::service('OpenTelemetry\SDK\Trace\TracerProvider', $tracerProvider, TRUE);
+    TestHelpers::service(TracerProvider::class, $tracerProvider, TRUE);
 
     /** @var \Drupal\opentelemetry\OpentelemetryServiceInterface $service */
     $service = TestHelpers::initService('opentelemetry');

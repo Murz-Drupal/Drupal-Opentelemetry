@@ -16,6 +16,7 @@ services:
       - '@logger.channel.opentelemetry'
       - '@plugin.manager.opentelemetry_trace'
       - '@request_stack'
+      - '@Drupal\opentelemetry\OpentelemetryLoggerProxy'
     tags:
       - name: event_subscriber
 
@@ -62,6 +63,12 @@ services:
   Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
     arguments:
       - '@opentelemetry'
+    tags:
+      - name: event_subscriber
+
+  Drupal\opentelemetry\OpentelemetryLoggerProxy:
+    arguments:
+      - '@logger.channel.opentelemetry'
     tags:
       - name: event_subscriber
 

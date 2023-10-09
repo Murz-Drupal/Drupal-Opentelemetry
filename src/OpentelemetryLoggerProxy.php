@@ -4,6 +4,8 @@ namespace Drupal\opentelemetry;
 
 use Drupal\Core\Logger\RfcLoggerTrait;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 // A workaround to make the logger compatible with Drupal 9.x and 10.x together.
 if (version_compare(\Drupal::VERSION, '10.0.0') <= 0) {
@@ -16,22 +18,29 @@ else {
 /**
  * A custom logger shim to catch an suppress repeating errors.
  */
-class OpentelemetryLoggerProxy implements LoggerInterface {
+class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterface {
   use RfcLoggerTrait;
   use OpentelemetryLoggerProxyTrait;
 
   /**
-   * Counters for repeatable errors.
+   * Storage for repeatable errors.
    *
    * @var array
    */
-  protected array $repeatableErrorsCounts = [];
+  protected array $repeatableErrors = [];
+
+  /**
+   * Chunk size to repeat the error to logs.
+   *
+   * @var int
+   */
+  protected int $chunkSize = 50;
 
   /**
    * {@inheritdoc}
    */
   public function __construct(
-    protected ?LoggerInterface $systemLogger = NULL,
+    protected LoggerInterface $systemLogger,
   ) {
   }
 
@@ -39,19 +48,112 @@ class OpentelemetryLoggerProxy implements LoggerInterface {
    * {@inheritdoc}
    */
   public function doLog($level, $message, array $context = []): void {
-    $step = 50;
     // When the collector is not responding, we can receive dozens of messages
     // with 'Export failure' message, that will flood our error log.
     // To workaround just log only the first error and step groups.
     // @todo Try to catch other repeating messages.
-    if ($message == 'Export failure') {
-      $this->repeatableErrorsCounts[$message] ??= 0;
-      $count = ++$this->repeatableErrorsCounts[$message];
-      if ($count == 1 || $count % $step == 0) {
-        if ($count > 1) {
-          $message .= " (Repeated $count times)";
+    switch ($message) {
+      case 'Export failure':
+        $exception = $context['exception'];
+        $context['%exception_message'] = $exception->getMessage();
+        $exceptionPrevious = $exception->getPrevious();
+        if ($exceptionPrevious) {
+          $context['%exception_previous_message'] = $exceptionPrevious->getMessage();
         }
-        $this->systemLogger->log($level, $message, $context);
+        else {
+          $context['%exception_previous_message'] = 'NULL';
+        }
+        $message = "$message: %exception_message (previous exception: %exception_previous_message)";
+        break;
+
+      case 'Unhandled export error':
+        $exception = $context['exception'];
+        $context['%exception_message'] = $exception->getMessage();
+        $message = "$message: %exception_message";
+        break;
+
+      case 'Export partial success':
+        $context['%rejected_logs'] = $context['rejected_logs'];
+        $context['%error_message'] = $context['error_message'];
+        $message = "$message: %error_message (rejected logs: %rejected_logs)";
+
+        break;
+    }
+    $this->doAggregatedLog($level, $message, $context);
+  }
+
+  /**
+   * Logs a message with aggregation of similar logs into groups.
+   *
+   * @param mixed $level
+   *   The log level.
+   * @param mixed $message
+   *   The log message.
+   * @param array $context
+   *   The log context array.
+   */
+  private function doAggregatedLog($level, $message, array $context) {
+    $placeholders = array_filter($context, fn($key) => str_starts_with($key, '%'), ARRAY_FILTER_USE_KEY);
+    $messageRendered = strtr($message, $placeholders);
+    $messageHash = md5(implode(':', [
+      $level,
+      $messageRendered,
+    ]));
+    $logItem = $this->repeatableErrors[$messageHash] ?? NULL;
+    if (!$logItem) {
+      $logItem = [
+        'count' => 0,
+      ];
+    }
+    $logItem['count']++;
+    $logItem['level'] = $level;
+    $logItem['message'] = $message;
+    $logItem['context'] = $context;
+    $this->repeatableErrors[$messageHash] = $logItem;
+    if (
+      $logItem['count'] == 1
+      || $logItem['count'] == $this->chunkSize
+    ) {
+      $this->doLogWithCount($logItem);
+      $logItem['count'] = 0;
+    }
+  }
+
+  /**
+   * Persist logs with count of the same items.
+   *
+   * @param array $logItem
+   *   An array with a log item.
+   */
+  private function doLogWithCount(array $logItem) {
+    if ($logItem['count'] > 2) {
+      $logItem['count']--;
+      $logItem['message'] .= " (repeated %count times)";
+      $logItem['context']['%count'] = $logItem['count'];
+    }
+    $this->systemLogger->log(
+      $logItem['level'],
+      $logItem['message'],
+      $logItem['context'],
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents() {
+    return [
+      KernelEvents::TERMINATE => ['onTerminate', 90],
+    ];
+  }
+
+  /**
+   * Logs repreated log entries on the request terminating.
+   */
+  public function onTerminate() {
+    foreach ($this->repeatableErrors ?? [] as $logItem) {
+      if ($logItem['count'] > 1 && $logItem['count'] % $this->chunkSize != 0) {
+        $this->doLogWithCount($logItem);
       }
     }
   }

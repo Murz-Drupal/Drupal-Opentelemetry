@@ -141,6 +141,8 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    *   The OpenTelemetry Trace Manager.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The Request Stack.
+   * @param \Drupal\opentelemetry\OpentelemetryLoggerProxy $opentelemetryLoggerProxy
+   *   The OpentelemetryLoggerProxy.
    */
   public function __construct(
     protected TracerProviderInterface $tracerProvider,
@@ -149,6 +151,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     protected LoggerChannelInterface $logger,
     protected OpentelemetryTraceManager $opentelemetryTraceManager,
     protected RequestStack $requestStack,
+    protected OpentelemetryLoggerProxy $opentelemetryLoggerProxy,
   ) {
     $this->settings = $this->configFactory->get(self::SETTINGS_KEY);
 
@@ -159,8 +162,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
 
     // Attaching the Drupal logger to the tracer.
     if ($this->settings->get(self::SETTING_LOGGER_DEDUPLICATION) ?? TRUE) {
-      $logger = new OpentelemetryLoggerProxy($this->logger);
-      LoggerHolder::set($logger);
+      LoggerHolder::set($opentelemetryLoggerProxy);
     }
     else {
       LoggerHolder::set($this->logger);
