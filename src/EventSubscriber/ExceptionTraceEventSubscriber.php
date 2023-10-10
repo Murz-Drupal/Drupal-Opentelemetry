@@ -2,9 +2,10 @@
 
 namespace Drupal\opentelemetry\EventSubscriber;
 
-use Drupal\opentelemetry\OpentelemetryServiceInterface;
+use Drupal\opentelemetry\OpentelemetryService;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Trace\Span;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -17,11 +18,11 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
   /**
    * Constructs the OpenTelemetry Event Subscriber.
    *
-   * @param \Drupal\opentelemetry\OpentelemetryServiceInterface $openTelemetry
-   *   An OpenTelemetry service.
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
+   *   A Symfony container.
    */
   public function __construct(
-    protected OpentelemetryServiceInterface $openTelemetry
+    protected ContainerInterface $container,
   ) {
   }
 
@@ -41,6 +42,9 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
    *   The kernel exception event.
    */
   public function onException(ExceptionEvent $event) {
+    if (!$this->openTelemetry = $this->getOpentelemetryService()) {
+      return;
+    }
     $exception = $event->getThrowable();
     if (!$tracer = $this->openTelemetry->getTracer()) {
       return;
@@ -56,6 +60,19 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
     if ($endSpan) {
       $span->end();
     }
+  }
+
+  /**
+   * Gets the opentelemetry service dynamically.
+   *
+   * @return \Drupal\opentelemetry\OpentelemetryService|null
+   *   The opentelemetry service instance, or null if not initialized yet.
+   */
+  protected function getOpentelemetryService(): ?OpentelemetryService {
+    if ($this->container->has('opentelemetry')) {
+      return $this->container->get('opentelemetry');
+    }
+    return NULL;
   }
 
 }

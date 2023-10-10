@@ -62,7 +62,7 @@ services:
 
   Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
     arguments:
-      - '@opentelemetry'
+      - '@service_container'
     tags:
       - name: event_subscriber
 
