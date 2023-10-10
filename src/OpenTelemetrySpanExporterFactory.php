@@ -5,6 +5,9 @@ namespace Drupal\opentelemetry;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use OpenTelemetry\Contrib\Otlp\Protocols;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
 use OpenTelemetry\SDK\Trace\SpanExporter\SpanExporterFactoryInterface;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
@@ -13,6 +16,7 @@ use OpenTelemetry\SDK\Trace\SpanExporterInterface;
  * Factory for creating instances of OT Transport using settings.
  */
 class OpenTelemetrySpanExporterFactory {
+  use StringTranslationTrait;
 
   /**
    * Creates a new TransportFactory instance.
@@ -62,6 +66,22 @@ class OpenTelemetrySpanExporterFactory {
         $settings->get(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL)
         ?: OpentelemetryService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK
       );
+
+      if (getenv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL) == Protocols::GRPC) {
+        if (!class_exists(GrpcTransport::class)) {
+          $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL, Protocols::HTTP_JSON, TRUE);
+
+          // @see https://www.drupal.org/project/coder/issues/3326197
+          // @codingStandardsIgnoreStart
+          $message = Markup::create(
+            $this->t(OpentelemetryService::GRPC_NA_MESSAGE)
+            . ' ' . $this->t('Falling back to <code>http/json</code>.')
+          );
+          // @codingStandardsIgnoreEnd
+          $this->messenger->addError($message);
+          $this->logger->error($message);
+        }
+      }
     }
 
     $spanExporter = $this->spanExporterFactory->create();
@@ -76,9 +96,11 @@ class OpenTelemetrySpanExporterFactory {
    *   The environment variable name.
    * @param string|null $value
    *   The value to set.
+   * @param bool $force
+   *   Forcing setting the value, if the env variable already filled.
    */
-  private function fillEnv(string $name, ?string $value): void {
-    if (getenv($name) === FALSE) {
+  private function fillEnv(string $name, ?string $value, bool $force = FALSE): void {
+    if (getenv($name) === FALSE || $force) {
       if ($value === NULL) {
         putenv($name);
       }

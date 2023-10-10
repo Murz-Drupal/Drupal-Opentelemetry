@@ -99,6 +99,11 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   const SERVICE_NAME_FALLBACK = 'Drupal';
 
   /**
+   * An error message text when the gRPC is not available.
+   */
+  const GRPC_NA_MESSAGE = 'OpenTelemetry gRPC protocol is not available. Install Composer library <code>open-telemetry/transport-grpc</code> to enable, or change the protocol in the settings.';
+
+  /**
    * The root span.
    *
    * @var \OpenTelemetry\API\Trace\SpanInterface

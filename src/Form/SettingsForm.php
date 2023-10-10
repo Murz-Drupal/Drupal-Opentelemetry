@@ -97,20 +97,28 @@ class SettingsForm extends ConfigFormBase {
       '#required' => FALSE,
     ];
     $form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL] = [
-      '#type' => 'select',
+      '#type' => 'radios',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
       '#description' => $this->t('OpenTelemetry protocol, default value: <code>@url</code>', [
         '@url' => OpentelemetryService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK,
       ]),
       '#default_value' => $settings->get(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
       '#options' => [
-        Protocols::GRPC => Protocols::GRPC,
-        Protocols::HTTP_PROTOBUF => Protocols::HTTP_PROTOBUF,
-        Protocols::HTTP_JSON => Protocols::HTTP_JSON,
-        Protocols::HTTP_NDJSON => Protocols::HTTP_NDJSON,
+        Protocols::HTTP_PROTOBUF => Protocols::HTTP_PROTOBUF . ' ' . $this->t('(HTTP Protobuf, Protocol Buffers)'),
+        Protocols::HTTP_JSON => Protocols::HTTP_JSON . ' ' . $this->t('(HTTP JSON)'),
+        Protocols::HTTP_NDJSON => Protocols::HTTP_NDJSON . ' ' . $this->t('(HTTP NDJSON, newline delimited JSON)'),
+        Protocols::GRPC => Protocols::GRPC . ' ' . $this->t('(gRPC Remote Procedure Calls)'),
       ],
       '#required' => TRUE,
     ];
+    if (!class_exists(GrpcTransport::class)) {
+      $form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL][Protocols::GRPC]['#disabled'] = TRUE;
+      // @see https://www.drupal.org/project/coder/issues/3326197
+      // @codingStandardsIgnoreStart
+      $form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL][Protocols::GRPC]['#description'] =
+        $this->t(OpentelemetryService::GRPC_NA_MESSAGE);
+      // @codingStandardsIgnoreEnd
+    }
     $form[OpentelemetryService::SETTING_DEBUG_MODE] = [
       '#type' => 'checkbox',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_DEBUG_MODE),

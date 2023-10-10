@@ -162,9 +162,9 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     if (!$tracer = $this->openTelemetry->getTracer()) {
       if ($this->openTelemetry->isDebugMode()) {
         // Calling statically to not add the dependency for non debug mode.
-        // @codeCoverageIgnoreStart
+        // @codingStandardsIgnoreStart
         \Drupal::messenger()->addError($this->t('RequestTrace plugin: Error with tracer initialization.'));
-        // @codeCoverageIgnoreEnd
+        // @codingStandardsIgnoreEnd
       }
       return;
     }
@@ -179,7 +179,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     );
     if ($this->openTelemetry->isDebugMode()) {
       // Calling statically to not add the dependency for non debug mode.
-      // @codeCoverageIgnoreStart
+      // @codingStandardsIgnoreStart
       \Drupal::messenger()->addStatus(
         $this->t('@name started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
           '@name' => 'RequestTrace plugin',
@@ -187,7 +187,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
           '@span_id' => $this->requestSpan->getContext()->getSpanId(),
         ])
       );
-      // @codeCoverageIgnoreEnd
+      // @codingStandardsIgnoreEnd
     }
     $this->isSpanInitialized = TRUE;
   }
