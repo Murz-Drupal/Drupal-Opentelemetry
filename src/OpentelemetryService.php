@@ -195,7 +195,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    */
   public static function getSubscribedEvents() {
     return [
-      KernelEvents::TERMINATE => ['onTerminate', 100],
+      KernelEvents::TERMINATE => ['onTerminate', -100],
     ];
   }
 
