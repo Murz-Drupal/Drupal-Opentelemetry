@@ -193,7 +193,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   /**
    * {@inheritdoc}
    */
-  public static function getSubscribedEvents() {
+  public static function getSubscribedEvents(): array {
     return [
       KernelEvents::TERMINATE => ['onTerminate', -100],
     ];
@@ -268,8 +268,8 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    * @return \OpenTelemetry\Context\ScopeInterface
    *   The root scope.
    */
-  public function getRootScope(): ScopeInterface {
-    return $this->rootScope;
+  public function getRootScope(): ?ScopeInterface {
+    return $this->rootScope ?? NULL;
   }
 
   /**
@@ -325,6 +325,9 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    *   A TerminateEvent.
    */
   public function onTerminate(TerminateEvent $event) {
+    if (!isset($this->rootScope) || !empty($this->rootScope)) {
+      return;
+    }
     if ($this->isLogRequestsEnabled()) {
       $this->logger->log(RfcLogLevel::DEBUG, 'Request @request, trace id @trace_id', [
         '@request' => $this->rootSpan->getName(),
@@ -339,12 +342,13 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    * For case if the terminate event is not fired by some reason.
    */
   public function __destruct() {
-    if (isset($this->rootScope) && !empty($this->rootScope)) {
-      $span = $this->getCurrentSpan();
-      $spanId = $span->getContext()->getSpanId();
-      if ($spanId !== SpanContextValidator::INVALID_SPAN) {
-        $this->rootScope->detach();
-      }
+    if (!isset($this->rootScope) || !empty($this->rootScope)) {
+      return;
+    }
+    $span = $this->getCurrentSpan();
+    $spanId = $span->getContext()->getSpanId();
+    if ($spanId !== SpanContextValidator::INVALID_SPAN) {
+      $this->rootScope->detach();
     }
   }
 
