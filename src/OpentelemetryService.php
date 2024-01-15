@@ -178,6 +178,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     if ($this->isDebugMode()) {
       // Calling statically to not add the dependency for non debug mode.
       // @codingStandardsIgnoreStart
+      // @phpstan-ignore-next-line
       \Drupal::messenger()->addStatus(
         $this->t('@name started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
           '@name' => 'OpentelemetryService',
@@ -334,12 +335,23 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
         '@trace_id' => $this->getTraceId(),
       ]);
     }
-    $this->rootSpan->end();
-    $this->rootScope->detach();
+    $this->finalize();
   }
 
   /**
-   * For case if the terminate event is not fired by some reason.
+   * Ends the root span and detaches the root scope.
+   */
+  public function finalize(): void {
+    if (isset($this->rootSpan)) {
+      $this->rootSpan->end();
+    }
+    if (isset($this->rootScope)) {
+      $this->rootScope->detach();
+    }
+  }
+
+  /**
+   * Finalizes the service if the terminate event is not fired by some reason.
    */
   public function __destruct() {
     if (!isset($this->rootScope) || !empty($this->rootScope)) {
@@ -348,7 +360,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     $span = $this->getCurrentSpan();
     $spanId = $span->getContext()->getSpanId();
     if ($spanId !== SpanContextValidator::INVALID_SPAN) {
-      $this->rootScope->detach();
+      $this->finalize();
     }
   }
 

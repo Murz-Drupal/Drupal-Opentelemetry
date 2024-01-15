@@ -15,6 +15,14 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
 
+
+  /**
+   * An opentelemetry service.
+   *
+   * @var \Drupal\opentelemetry\OpentelemetryService|null
+   */
+  protected ?OpentelemetryService $openTelemetry;
+
   /**
    * Constructs the OpenTelemetry Event Subscriber.
    *

@@ -75,6 +75,7 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
 
     // @todo Rework this to get driver name properly.
     static $driver;
+    // @phpstan-ignore-next-line
     $driver ??= \Drupal::database()->driver();
 
     $tracer = $this->openTelemetry->getTracer();
@@ -112,6 +113,7 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
     ) {
       return;
     }
+    // @phpstan-ignore-next-line
     \Drupal::database()->enableEvents(
       [
         StatementExecutionStartEvent::class,

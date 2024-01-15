@@ -18,6 +18,7 @@ class OpenTelemetrySysLog extends SysLog {
     // We can't use dependency injection in the class because of circular
     // dependency, so using a static call to the service.
     try {
+      // @phpstan-ignore-next-line
       $tracer ??= \Drupal::service('opentelemetry');
       // This returns empty trace id for 404 pages, because it's called
       // before the KernelEvents::REQUEST happens.

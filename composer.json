@@ -10,7 +10,7 @@
         "open-telemetry/opentelemetry-propagation-traceresponse": "^0.0.2"
     },
     "require-dev": {
-        "drupal/test_helpers": "^1.0.0-rc1"
+        "drupal/test_helpers": "^1.3.0"
     },
     "authors": [
         {

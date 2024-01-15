@@ -74,7 +74,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-  public static function getSubscribedEvents() {
+  public static function getSubscribedEvents(): array {
     return [
       KernelEvents::REQUEST => ['onRequest', 0],
       KernelEvents::VIEW => ['onView', 0],
@@ -163,6 +163,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       if ($this->openTelemetry->isDebugMode()) {
         // Calling statically to not add the dependency for non debug mode.
         // @codingStandardsIgnoreStart
+        // @phpstan-ignore-next-line
         \Drupal::messenger()->addError($this->t('RequestTrace plugin: Error with tracer initialization.'));
         // @codingStandardsIgnoreEnd
       }
@@ -180,6 +181,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     if ($this->openTelemetry->isDebugMode()) {
       // Calling statically to not add the dependency for non debug mode.
       // @codingStandardsIgnoreStart
+      // @phpstan-ignore-next-line
       \Drupal::messenger()->addStatus(
         $this->t('@name started. The root trace id: <code>@trace_id</code>, span id: <code>@span_id</code>.', [
           '@name' => 'RequestTrace plugin',

@@ -42,49 +42,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
   }
 
   /**
-   * This test should be first to have not initialized OpenTelemetry instance.
-   *
-   * @todo Find a way to destroy the OpenTelemetry instance after finishing
-   * each test.
-   *
-   * @covers ::__construct
-   * @covers ::getTracer
-   */
-  public function testDisable() {
-    // Check in disabled state.
-    $settings = [
-      OpentelemetryService::SETTING_DISABLE => TRUE,
-    ];
-    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settings);
-    $service = $this->initTracerService();
-    $scope = $service->getRootScope();
-    $this->assertFalse($service->hasTracer());
-    $this->assertNull($service->getTracer());
-    $span = Span::getCurrent();
-    $this->assertEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
-    $this->assertEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
-    $service->onTerminate($this->createTerminateEventMock());
-    if ($scope = $service->getRootScope()) {
-      $scope->detach();
-    }
-    unset($service);
-
-    // Check in enabled state.
-    $settings = [
-      OpentelemetryService::SETTING_DISABLE => FALSE,
-    ];
-    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settings);
-    $service = $this->initTracerService();
-    $this->assertTrue($service->hasTracer());
-    $this->assertNotNull($service->getTracer());
-    $span = Span::getCurrent();
-    $this->assertNotEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
-    $this->assertNotEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
-    $service->getRootScope()->detach();
-    unset($service);
-  }
-
-  /**
    * @covers ::__construct
    * @covers ::getTracer
    */
@@ -97,8 +54,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settinsFallback);
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settinsFallback);
-    $service->getRootScope()->detach();
-    unset($service);
+    $service->finalize();
   }
 
   /**
@@ -115,8 +71,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settings);
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
-    $service->getRootScope()->detach();
-    unset($service);
+    $service->finalize();
   }
 
   /**
@@ -135,8 +90,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     putenv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL . '=' . $settings[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL]);
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
-    $service->getRootScope()->detach();
-    unset($service);
+    $service->finalize();
   }
 
   /**
@@ -156,8 +110,39 @@ class OpentelemetryServiceTest extends UnitTestCase {
     putenv(Variables::OTEL_EXPORTER_OTLP_PROTOCOL . '=' . $settings[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL]);
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
-    $service->getRootScope()->detach();
-    unset($service);
+    $service->finalize();
+  }
+
+  /**
+   * @covers ::__construct
+   * @covers ::getTracer
+   */
+  public function testDisable() {
+    // Check in disabled state.
+    $settings = [
+      OpentelemetryService::SETTING_DISABLE => TRUE,
+    ];
+    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settings);
+    $service = $this->initTracerService();
+    $this->assertFalse($service->hasTracer());
+    $this->assertNull($service->getTracer());
+    $span = Span::getCurrent();
+    $this->assertEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
+    $this->assertEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
+    $service->finalize();
+
+    // Check in enabled state.
+    $settings = [
+      OpentelemetryService::SETTING_DISABLE => FALSE,
+    ];
+    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settings);
+    $service = $this->initTracerService();
+    $this->assertTrue($service->hasTracer());
+    $this->assertNotNull($service->getTracer());
+    $span = Span::getCurrent();
+    $this->assertNotEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
+    $this->assertNotEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
+    $service->finalize();
   }
 
   /**
@@ -176,6 +161,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $tracerSharedState = TestHelpers::getPrivateProperty($tracer, 'tracerSharedState');
     $spanProcessor = $tracerSharedState->getSpanProcessor();
     $exporter = TestHelpers::getPrivateProperty($spanProcessor, 'exporter');
+
     $transport = TestHelpers::getPrivateProperty($exporter, 'transport');
 
     $transportEndpoint = TestHelpers::getPrivateProperty($transport, 'endpoint');
@@ -193,10 +179,14 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $this->assertEquals($settings[OpentelemetryService::SETTING_SERVICE_NAME], $resourceAttributes->get('service.name'));
 
     $span = Span::getCurrent();
-    $this->assertNotEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
-    $this->assertMatchesRegularExpression(SpanContextValidator::VALID_TRACE, $span->getContext()->getTraceId());
-    $this->assertNotEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
-    $this->assertMatchesRegularExpression(SpanContextValidator::VALID_SPAN, $span->getContext()->getSpanId());
+    $spanContext = $span->getContext();
+    $spanId = $spanContext->getSpanId();
+    $traceId = $spanContext->getTraceId();
+
+    $this->assertNotEquals(SpanContextValidator::INVALID_TRACE, $traceId);
+    $this->assertMatchesRegularExpression(SpanContextValidator::VALID_TRACE, $traceId);
+    $this->assertNotEquals(SpanContextValidator::INVALID_SPAN, $spanId);
+    $this->assertMatchesRegularExpression(SpanContextValidator::VALID_SPAN, $spanId);
   }
 
   /**
@@ -207,7 +197,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('request_stack')->push($request);
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
     TestHelpers::service('plugin.manager.opentelemetry_trace', $this->createMock(OpentelemetryTraceManager::class));
-    TestHelpers::service(SpanExporterFactory::class, TestHelpers::initServiceFromYaml(dirname(__FILE__) . '/../../../opentelemetry.services.yml', SpanExporterFactory::class));
+    TestHelpers::service(SpanExporterFactory::class, servicesYamlFile: dirname(__FILE__) . '/../../../opentelemetry.services.yml', initService: TRUE);
     TestHelpers::service(OpentelemetryLoggerProxy::class, TestHelpers::initService(OpentelemetryLoggerProxy::class));
     $spanExporterFactory = TestHelpers::initService(OpenTelemetrySpanExporterFactory::class);
     $spanExporter = $spanExporterFactory->create();

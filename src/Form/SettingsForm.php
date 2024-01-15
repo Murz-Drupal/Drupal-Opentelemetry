@@ -28,7 +28,7 @@ class SettingsForm extends ConfigFormBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(
+  final public function __construct(
     protected OpentelemetryServiceInterface $openTelemetry,
     protected OpentelemetryTraceManager $opentelemetryTraceManager,
     protected TypedConfigManagerInterface $configTyped,
