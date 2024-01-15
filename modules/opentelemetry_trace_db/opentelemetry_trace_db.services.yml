@@ -1,0 +1,6 @@
+services:
+  Drupal\opentelemetry_trace_db\EventSubscriber\DatabaseStatementTraceEventSubscriber:
+    arguments:
+      - '@opentelemetry'
+    tags:
+      - name: event_subscriber

@@ -54,12 +54,6 @@ services:
     tags:
       - name: event_subscriber
 
-  Drupal\opentelemetry\EventSubscriber\DatabaseStatementTraceEventSubscriber:
-    arguments:
-      - '@opentelemetry'
-    tags:
-      - name: event_subscriber
-
   Drupal\opentelemetry\EventSubscriber\ExceptionTraceEventSubscriber:
     arguments:
       - '@service_container'

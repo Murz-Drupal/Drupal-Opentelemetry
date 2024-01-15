@@ -1,0 +1,8 @@
+name: OpenTelemetry Database trace plugin
+type: module
+description: 'Provides Database trace plugin for tracing each SQL query.'
+core_version_requirement: ^10.1 || ^11
+package: Development
+configure: opentelemetry.settings
+dependencies:
+  - opentelemetry:opentelemetry

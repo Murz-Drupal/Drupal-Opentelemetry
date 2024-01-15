@@ -1,8 +1,9 @@
 <?php
 
-namespace Drupal\opentelemetry\Plugin\opentelemetry\OpenTelemetryTrace;
+namespace Drupal\opentelemetry_trace_db\Plugin\opentelemetry\OpenTelemetryTrace;
 
 use Drupal\Core\Database\Event\DatabaseEvent;
+use Drupal\opentelemetry\Plugin\opentelemetry\OpenTelemetryTrace\OpentelemetryTraceBase;
 
 /**
  * The Database Statement span.

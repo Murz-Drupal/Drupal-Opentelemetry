@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\opentelemetry\EventSubscriber;
+namespace Drupal\opentelemetry_trace_db\EventSubscriber;
 
 use Drupal\Core\Database\Event\DatabaseEvent;
 use Drupal\Core\Database\Event\StatementExecutionEndEvent;
