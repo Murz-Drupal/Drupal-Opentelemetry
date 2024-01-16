@@ -10,37 +10,45 @@ services:
   opentelemetry:
     class: Drupal\opentelemetry\OpentelemetryService
     arguments:
-      - '@OpenTelemetry\SDK\Trace\TracerProvider'
+      - '@opentelemetry.tracer_provider'
       - '%tracer_name%'
       - '@config.factory'
       - '@logger.channel.opentelemetry'
       - '@plugin.manager.opentelemetry_trace'
       - '@request_stack'
-      - '@Drupal\opentelemetry\OpentelemetryLoggerProxy'
+      - '@opentelemetry.logger_proxy'
     tags:
       - name: event_subscriber
 
-  OpenTelemetry\SDK\Trace\TracerProvider:
+  opentelemetry.tracer_provider:
+    class: OpenTelemetry\SDK\Trace\TracerProvider
     arguments:
-      - ['@OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor']
+      - ['@opentelemetry.span_processor']
 
-  OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor:
+  opentelemetry.span_processor:
+    class: OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor
     arguments:
-      - '@OpenTelemetry\Contrib\Otlp\SpanExporter'
+      - '@opentelemetry.span_exporter'
 
-  OpenTelemetry\Contrib\Otlp\SpanExporter:
+  opentelemetry.clock_factory:
+    class: OpenTelemetry\SDK\Common\Time\ClockFactory
+
+  opentelemetry.span_exporter:
+    class: OpenTelemetry\Contrib\Otlp\SpanExporter
     factory:
-      - '@Drupal\opentelemetry\OpenTelemetrySpanExporterFactory'
+      - '@opentelemetry.opentelemetry_span_exporter.factory'
       - 'create'
 
-  Drupal\opentelemetry\OpenTelemetrySpanExporterFactory:
+  opentelemetry.opentelemetry_span_exporter.factory:
+    class: Drupal\opentelemetry\OpenTelemetrySpanExporterFactory
     arguments:
-      - '@OpenTelemetry\Contrib\Otlp\SpanExporterFactory'
+      - '@opentelemetry.span_exporter.factory'
       - '@config.factory'
       - '@logger.channel.opentelemetry'
       - '@messenger'
 
-  OpenTelemetry\Contrib\Otlp\SpanExporterFactory: {}
+  opentelemetry.span_exporter.factory:
+    class: OpenTelemetry\Contrib\Otlp\SpanExporterFactory
 
   plugin.manager.opentelemetry_trace:
     class: Drupal\opentelemetry\OpentelemetryTraceManager
@@ -60,7 +68,8 @@ services:
     tags:
       - name: event_subscriber
 
-  Drupal\opentelemetry\OpentelemetryLoggerProxy:
+  opentelemetry.logger_proxy:
+    class: Drupal\opentelemetry\OpentelemetryLoggerProxy
     arguments:
       - '@logger.channel.opentelemetry'
     tags:

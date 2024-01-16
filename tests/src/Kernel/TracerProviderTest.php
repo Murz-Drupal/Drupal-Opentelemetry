@@ -29,7 +29,7 @@ class TracerProviderTest extends KernelTestBase {
    * Tests getting a tracer.
    */
   public function testGetTracer(): void {
-    $tracerProvider = $this->container->get('OpenTelemetry\SDK\Trace\TracerProvider');
+    $tracerProvider = $this->container->get('opentelemetry.tracer_provider');
     assert($tracerProvider instanceof TracerProviderInterface);
 
     $this->assertNotNull($tracerProvider);
