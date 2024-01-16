@@ -326,7 +326,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    *   A TerminateEvent.
    */
   public function onTerminate(TerminateEvent $event) {
-    if (!isset($this->rootScope) || !empty($this->rootScope)) {
+    if (!isset($this->rootScope) || empty($this->rootScope)) {
       return;
     }
     if ($this->isLogRequestsEnabled()) {
@@ -354,7 +354,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    * Finalizes the service if the terminate event is not fired by some reason.
    */
   public function __destruct() {
-    if (!isset($this->rootScope) || !empty($this->rootScope)) {
+    if (!isset($this->rootScope) || empty($this->rootScope)) {
       return;
     }
     $span = $this->getCurrentSpan();
