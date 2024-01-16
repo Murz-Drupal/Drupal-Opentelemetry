@@ -50,7 +50,7 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
    *   The kernel exception event.
    */
   public function onException(ExceptionEvent $event) {
-    if (!$this->openTelemetry = $this->getOpentelemetryService()) {
+    if (!$this->openTelemetry = $this->getInitializedOpentelemetryService()) {
       return;
     }
     $exception = $event->getThrowable();
@@ -76,8 +76,8 @@ class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
    * @return \Drupal\opentelemetry\OpentelemetryService|null
    *   The opentelemetry service instance, or null if not initialized yet.
    */
-  protected function getOpentelemetryService(): ?OpentelemetryService {
-    if ($this->container->has('opentelemetry')) {
+  private function getInitializedOpentelemetryService(): ?OpentelemetryService {
+    if ($this->container->initialized('opentelemetry')) {
       return $this->container->get('opentelemetry');
     }
     return NULL;
