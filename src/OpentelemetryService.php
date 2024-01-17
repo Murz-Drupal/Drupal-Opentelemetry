@@ -173,7 +173,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
       LoggerHolder::set($this->logger);
     }
 
-    $this->tracer = $tracerProvider->getTracer($this->tracerName);
+    $this->tracer = $this->tracerProvider->getTracer($this->tracerName);
     $this->initRootSpan();
     if ($this->isDebugMode()) {
       // Calling statically to not add the dependency for non debug mode.
@@ -348,6 +348,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     if (isset($this->rootScope)) {
       $this->rootScope->detach();
     }
+    $this->tracerProvider->forceFlush();
   }
 
   /**

@@ -26,9 +26,16 @@ services:
       - ['@opentelemetry.span_processor']
 
   opentelemetry.span_processor:
-    class: OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor
+    class: OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor
     arguments:
       - '@opentelemetry.span_exporter'
+      - '@opentelemetry.clock'
+
+  opentelemetry.clock:
+    class: OpenTelemetry\SDK\Common\Time\ClockInterface
+    factory:
+      - '@opentelemetry.clock_factory'
+      - 'build'
 
   opentelemetry.clock_factory:
     class: OpenTelemetry\SDK\Common\Time\ClockFactory
