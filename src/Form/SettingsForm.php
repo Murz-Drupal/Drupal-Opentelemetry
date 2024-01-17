@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\opentelemetry\OpentelemetryService;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
+use OpenTelemetry\Contrib\Grpc\GrpcTransport;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
