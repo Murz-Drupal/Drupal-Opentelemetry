@@ -1,0 +1,43 @@
+services:
+  opentelemetry_logs:
+    class: Drupal\opentelemetry_logs\Logger\OpentelemetryLogs
+    arguments:
+      - '@config.factory'
+      - '@request_stack'
+      - '@logger.log_message_parser'
+      - '@opentelemetry.logger_provider'
+    tags:
+      - name: logger
+      - name: event_subscriber
+
+  opentelemetry.logs_exporter.factory:
+    class: OpenTelemetry\Contrib\Otlp\LogsExporterFactory
+
+  opentelemetry.logs_exporter:
+    class: OpenTelemetry\SDK\Logs\LogRecordExporterInterface
+    factory:
+      - '@opentelemetry.logs_exporter.factory'
+      - 'create'
+
+  opentelemetry.log_record_processor:
+    class: OpenTelemetry\SDK\Logs\Processor\BatchLogRecordProcessor
+    arguments:
+      - '@opentelemetry.logs_exporter'
+      - '@opentelemetry.clock'
+
+  opentelemetry.attributes.factory:
+    class: OpenTelemetry\SDK\Common\Attribute\Attributes
+    factory:
+      - 'OpenTelemetry\SDK\Common\Attribute\Attributes'
+      - 'factory'
+
+  opentelemetry.instrumentation_scope.factory:
+    class: OpenTelemetry\SDK\Common\Instrumentation\InstrumentationScopeFactory
+    arguments:
+      - '@opentelemetry.attributes.factory'
+
+  opentelemetry.logger_provider:
+    class: OpenTelemetry\SDK\Logs\LoggerProvider
+    arguments:
+      - '@opentelemetry.log_record_processor'
+      - '@opentelemetry.instrumentation_scope.factory'
