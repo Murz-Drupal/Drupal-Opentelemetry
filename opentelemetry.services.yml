@@ -43,16 +43,8 @@ services:
   opentelemetry.span_exporter:
     class: OpenTelemetry\Contrib\Otlp\SpanExporter
     factory:
-      - '@opentelemetry.opentelemetry_span_exporter.factory'
-      - 'create'
-
-  opentelemetry.opentelemetry_span_exporter.factory:
-    class: Drupal\opentelemetry\OpenTelemetrySpanExporterFactory
-    arguments:
       - '@opentelemetry.span_exporter.factory'
-      - '@config.factory'
-      - '@logger.channel.opentelemetry'
-      - '@messenger'
+      - 'create'
 
   opentelemetry.span_exporter.factory:
     class: OpenTelemetry\Contrib\Otlp\SpanExporterFactory
@@ -60,6 +52,13 @@ services:
   plugin.manager.opentelemetry_trace:
     class: Drupal\opentelemetry\OpentelemetryTraceManager
     parent: default_plugin_manager
+
+  Drupal\opentelemetry\EventSubscriber\OpentelemetryConfigureSubscriber:
+    arguments:
+      - '@config.factory'
+      - '@messenger'
+    tags:
+      - name: event_subscriber
 
   Drupal\opentelemetry\EventSubscriber\RequestTraceEventSubscriber:
     arguments:

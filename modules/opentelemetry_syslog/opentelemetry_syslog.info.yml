@@ -1,8 +1,8 @@
-name: 'OpenTelemetry Syslog'
+name: OpenTelemetry Syslog
 type: module
-description: 'Provides syslog logger with trace id.'
+description: Provides syslog logger with trace id.
 core_version_requirement: ^9 || ^10
-package: 'Development'
+package: Logging
 configure: opentelemetry_syslog.settings
 dependencies:
   - drupal:syslog

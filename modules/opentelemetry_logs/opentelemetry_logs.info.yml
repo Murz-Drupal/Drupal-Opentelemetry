@@ -1,0 +1,5 @@
+name: OpenTelemetry Logs
+type: module
+description: Provides a Drupal Logger which pushes logs to the OpenTelemetry receiver.
+core_version_requirement: ^9 || ^10 || ^11
+package: Logging

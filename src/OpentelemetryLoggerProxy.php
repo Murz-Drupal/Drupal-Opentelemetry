@@ -55,20 +55,26 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
     switch ($message) {
       case 'Export failure':
         $exception = $context['exception'];
-        $context['%exception_message'] = $exception->getMessage();
+        $context['@message'] = $exception->getMessage();
+        // The function seems not available in this type of exceptions.
+        $context['%file'] = $exception->getFile();
+        $context['%line'] = $exception->getLine();
+        $context['@backtrace_string'] = $exception->getTraceAsString();
+        $messageInfoTemplate = "$message: @message in line %line of %file";
+        $backtraceTemplate = "<pre>@backtrace_string</pre>";
+        $message = "$messageInfoTemplate. $backtraceTemplate";
+
         $exceptionPrevious = $exception->getPrevious();
         if ($exceptionPrevious) {
-          $context['%exception_previous_message'] = $exceptionPrevious->getMessage();
+          $context['@message_previous'] = $exceptionPrevious->getMessage();
+          $message = "$messageInfoTemplate (previous exception message: @message_previous). $backtraceTemplate";
         }
-        else {
-          $context['%exception_previous_message'] = 'NULL';
-        }
-        $message = "$message: %exception_message (previous exception: %exception_previous_message)";
+
         break;
 
       case 'Unhandled export error':
         $exception = $context['exception'];
-        $context['%exception_message'] = $exception->getMessage();
+        $context['@message'] = $exception->getMessage();
         $message = "$message: %exception_message";
         break;
 

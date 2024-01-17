@@ -2,11 +2,9 @@
 
 namespace Drupal\Tests\opentelemetry\Unit;
 
-use Drupal\opentelemetry\OpentelemetryLoggerProxy;
+use Drupal\opentelemetry\EventSubscriber\OpentelemetryConfigureSubscriber;
 use Drupal\opentelemetry\OpentelemetryService;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
-use Drupal\opentelemetry\OpenTelemetrySpanExporterFactory;
-use Drupal\opentelemetry\OpentelemetryTraceManager;
 use Drupal\test_helpers\Stub\LoggerChannelFactoryStub;
 use Drupal\test_helpers\TestHelpers;
 use Drupal\Tests\UnitTestCase;
@@ -18,9 +16,6 @@ use OpenTelemetry\SDK\Trace\Span;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\TerminateEvent;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * @coversDefaultClass \Drupal\opentelemetry\OpentelemetryService
@@ -192,14 +187,16 @@ class OpentelemetryServiceTest extends UnitTestCase {
    * Configures the tracer service with all required dependencies.
    */
   private function initTracerService() {
+    TestHelpers::service(OpentelemetryConfigureSubscriber::class, initService: TRUE)->applyConfiguration();
+
     $request = new Request();
     TestHelpers::service('request_stack')->push($request);
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
-    TestHelpers::service('plugin.manager.opentelemetry_trace', $this->createMock(OpentelemetryTraceManager::class));
-    TestHelpers::service('opentelemetry.span_exporter.factory', servicesYamlFile: dirname(__FILE__) . '/../../../opentelemetry.services.yml', initService: TRUE);
-    TestHelpers::service('opentelemetry.logger_proxy', TestHelpers::initService(OpentelemetryLoggerProxy::class));
-    $spanExporterFactory = TestHelpers::initService(OpenTelemetrySpanExporterFactory::class);
-    $spanExporter = $spanExporterFactory->create();
+    TestHelpers::service('plugin.manager.opentelemetry_trace', initService: TRUE);
+    TestHelpers::service('opentelemetry.span_exporter.factory', initService: TRUE);
+    TestHelpers::service('opentelemetry.logger_proxy', initService: TRUE);
+
+    $spanExporter = TestHelpers::service('opentelemetry.span_exporter.factory')->create();
     $spanProcessor = new SimpleSpanProcessor($spanExporter);
     $tracerProvider = new TracerProvider($spanProcessor);
     TestHelpers::service('opentelemetry.tracer_provider', $tracerProvider, TRUE);
@@ -207,18 +204,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     /** @var \Drupal\opentelemetry\OpentelemetryServiceInterface $service */
     $service = TestHelpers::initService('opentelemetry');
     return $service;
-  }
-
-  /**
-   * Creates a mock of the TerminateEvent.
-   */
-  private function createTerminateEventMock() {
-    $event = new TerminateEvent(
-      $this->createMock(HttpKernelInterface::class),
-      $this->createMock(Request::class),
-      $this->createMock(Response::class),
-    );
-    return $event;
   }
 
 }
