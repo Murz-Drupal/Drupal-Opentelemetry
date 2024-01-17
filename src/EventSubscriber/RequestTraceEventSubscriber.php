@@ -116,6 +116,9 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     if (!$this->isSpanInitialized) {
       return;
     }
+    if (!$event->isMainRequest()) {
+      return;
+    }
     $this->requestSpan->setAttribute('http.status_code', $event->getResponse()->getStatusCode());
     $scope = Context::storage()->scope();
     if ($scope) {
