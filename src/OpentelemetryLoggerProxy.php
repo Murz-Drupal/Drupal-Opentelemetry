@@ -74,7 +74,7 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
 
       case 'Unhandled export error':
         $exception = $context['exception'];
-        $context['@message'] = $exception->getMessage();
+        $context['%exception_message'] = $exception->getMessage();
         $message = "$message: %exception_message";
         break;
 
