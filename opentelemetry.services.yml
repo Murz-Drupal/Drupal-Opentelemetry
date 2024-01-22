@@ -34,11 +34,8 @@ services:
   opentelemetry.clock:
     class: OpenTelemetry\SDK\Common\Time\ClockInterface
     factory:
-      - '@opentelemetry.clock_factory'
-      - 'build'
-
-  opentelemetry.clock_factory:
-    class: OpenTelemetry\SDK\Common\Time\ClockFactory
+      - 'OpenTelemetry\SDK\Common\Time\ClockFactory'
+      - 'getDefault'
 
   opentelemetry.span_exporter:
     class: OpenTelemetry\Contrib\Otlp\SpanExporter

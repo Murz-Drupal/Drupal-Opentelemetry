@@ -12,8 +12,9 @@ use OpenTelemetry\API\Trace\SpanContextValidator;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use OpenTelemetry\SDK\Common\Configuration\Defaults;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
+use OpenTelemetry\SDK\Common\Time\ClockFactory;
 use OpenTelemetry\SDK\Trace\Span;
-use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
+use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -49,6 +50,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settinsFallback);
     $service->finalize();
+    $service->getRootScope()->detach();
   }
 
   /**
@@ -66,6 +68,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
     $service->finalize();
+    $service->getRootScope()->detach();
   }
 
   /**
@@ -85,6 +88,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
     $service->finalize();
+    $service->getRootScope()->detach();
   }
 
   /**
@@ -105,6 +109,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
     $service->finalize();
+    $service->getRootScope()->detach();
   }
 
   /**
@@ -124,6 +129,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $this->assertEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
     $this->assertEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
     $service->finalize();
+    $this->assertNull($service->getRootScope());
 
     // Check in enabled state.
     $settings = [
@@ -137,6 +143,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $this->assertNotEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
     $this->assertNotEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
     $service->finalize();
+    $service->getRootScope()->detach();
   }
 
   /**
@@ -197,7 +204,7 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('opentelemetry.logger_proxy', initService: TRUE);
 
     $spanExporter = TestHelpers::service('opentelemetry.span_exporter.factory')->create();
-    $spanProcessor = new SimpleSpanProcessor($spanExporter);
+    $spanProcessor = new BatchSpanProcessor($spanExporter, ClockFactory::getDefault());
     $tracerProvider = new TracerProvider($spanProcessor);
     TestHelpers::service('opentelemetry.tracer_provider', $tracerProvider, TRUE);
 

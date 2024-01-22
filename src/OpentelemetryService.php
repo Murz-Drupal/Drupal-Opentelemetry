@@ -320,7 +320,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   }
 
   /**
-   * Ends the root span and detaches the scope.
+   * Ends the root span.
    *
    * @param \Symfony\Component\HttpKernel\Event\TerminateEvent $event
    *   A TerminateEvent.
@@ -344,9 +344,6 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   public function finalize(): void {
     if (isset($this->rootSpan)) {
       $this->rootSpan->end();
-    }
-    if (isset($this->rootScope)) {
-      $this->rootScope->detach();
     }
     $this->tracerProvider->forceFlush();
   }
