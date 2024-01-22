@@ -192,6 +192,7 @@ class SettingsForm extends ConfigFormBase {
       ->set(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL, $form_state->getValue(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL))
       ->set(OpentelemetryService::SETTING_DEBUG_MODE, $form_state->getValue(OpentelemetryService::SETTING_DEBUG_MODE))
       ->set(OpentelemetryService::SETTING_SERVICE_NAME, $form_state->getValue(OpentelemetryService::SETTING_SERVICE_NAME))
+      ->set(OpentelemetryService::SETTING_LOGGER_DEDUPLICATION, $form_state->getValue(OpentelemetryService::SETTING_LOGGER_DEDUPLICATION))
       ->set(OpentelemetryService::SETTING_ENABLED_PLUGINS, $form_state->getValue(OpentelemetryService::SETTING_ENABLED_PLUGINS))
       ->set(OpentelemetryService::SETTING_AUTHORIZATION, $form_state->getValue(OpentelemetryService::SETTING_AUTHORIZATION))
       ->set(OpentelemetryService::SETTING_LOG_REQUESTS, $form_state->getValue(OpentelemetryService::SETTING_LOG_REQUESTS))
