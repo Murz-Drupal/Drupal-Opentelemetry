@@ -1,24 +1,50 @@
 <?php
 
-namespace Drupal\opentelemetry\EventSubscriber;
+namespace Drupal\opentelemetry;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\opentelemetry\OpentelemetryService;
 use OpenTelemetry\Contrib\Grpc\GrpcTransport;
 use OpenTelemetry\Contrib\Otlp\Protocols;
+use OpenTelemetry\SDK\Common\Configuration\Configuration;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
-use Psr\EventDispatcher\StoppableEventInterface;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\KernelEvents;
+use OpenTelemetry\SDK\Common\Export\TransportFactoryInterface;
+use OpenTelemetry\SDK\Registry;
 
 /**
- * Subscribes to kernel events to initialize the root span.
+ * A Plugin to manage OpenTelemetry Span plugins.
  */
-class OpentelemetryConfigureSubscriber implements EventSubscriberInterface {
+class OpentelemetryTransportFactoryProvider {
   use StringTranslationTrait;
+
+  /**
+   * Initialised transports per protocol.
+   *
+   * @var \OpenTelemetry\SDK\Common\Export\TransportFactoryInterface[]
+   */
+  protected array $transports;
+
+  /**
+   * Data type for traces.
+   *
+   * @var string
+   */
+  const DATA_TYPE_TRACES = 'TRACES';
+  /**
+   * Data type for metrics.
+   *
+   * @var string
+   */
+  const DATA_TYPE_METRICS = 'METRICS';
+  /**
+   * Data type for logs.
+   *
+   * @var string
+   */
+
+  const DATA_TYPE_LOGS = 'LOGS';
 
   /**
    * Creates a new TransportFactory instance.
@@ -32,26 +58,25 @@ class OpentelemetryConfigureSubscriber implements EventSubscriberInterface {
     protected ConfigFactoryInterface $configFactory,
     protected MessengerInterface $messenger,
   ) {
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getSubscribedEvents(): array {
-    return [
-      KernelEvents::REQUEST => ['applyConfigurationOnEvent', 1000],
-      KernelEvents::VIEW => ['applyConfigurationOnEvent', 1000],
-    ];
-  }
-
-  /**
-   * Applies OpenTelemetry configuration on events.
-   *
-   * @param \Psr\EventDispatcher\StoppableEventInterface $event
-   *   Any event.
-   */
-  public function applyConfigurationOnEvent(StoppableEventInterface $event) {
     $this->applyConfiguration();
+  }
+
+  /**
+   * Gets the using transport for a protocol or creates a new one.
+   *
+   * @param string|null $dataType
+   *   The data type for transport: TRACES|METRICS|LOGS|null.
+   *   For null - returns the default transport for all data types.
+   *
+   * @return \OpenTelemetry\SDK\Common\Export\TransportFactoryInterface
+   */
+  public function get(string $dataType = NULL): TransportFactoryInterface {
+    $protocol ??= $this->getProtocol($dataType);
+    if (!isset($this->transports[$protocol])) {
+      $factoryClass = Registry::transportFactory($protocol);
+      $this->transports[$protocol] = new $factoryClass();
+    }
+    return $this->transports[$protocol];
   }
 
   /**
@@ -117,6 +142,34 @@ class OpentelemetryConfigureSubscriber implements EventSubscriberInterface {
         putenv($name . '=' . $value);
       }
     }
+  }
+
+  /**
+   * Returns the protocol to use for transport, depending on the data type.
+   *
+   * @param string|null $dataType
+   *   The data type: TRACES|METRICS|LOGS|null.
+   *   For null - returns the default protocol for all data types.
+   *
+   * @return string
+   *   The protocol name.
+   */
+  private function getProtocol(string $dataType = NULL): string {
+    return match ($dataType) {
+      self::DATA_TYPE_TRACES => Configuration::has(Variables::OTEL_EXPORTER_OTLP_TRACES_PROTOCOL) ?
+      Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_TRACES_PROTOCOL) :
+      Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_PROTOCOL),
+
+      self::DATA_TYPE_METRICS => Configuration::has(Variables::OTEL_EXPORTER_OTLP_METRICS_PROTOCOL) ?
+      Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_METRICS_PROTOCOL) :
+      Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_PROTOCOL),
+
+      self::DATA_TYPE_LOGS => Configuration::has(Variables::OTEL_EXPORTER_OTLP_LOGS_PROTOCOL) ?
+      Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_LOGS_PROTOCOL) :
+      Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_PROTOCOL),
+
+      default => Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_PROTOCOL),
+    };
   }
 
 }

@@ -19,6 +19,7 @@ services:
       - '@opentelemetry.logger_proxy'
     tags:
       - name: event_subscriber
+      - name: drush.command
 
   opentelemetry.tracer_provider:
     class: OpenTelemetry\SDK\Trace\TracerProvider
@@ -37,6 +38,20 @@ services:
       - 'OpenTelemetry\SDK\Common\Time\ClockFactory'
       - 'getDefault'
 
+  opentelemetry.traces.transport.factory:
+    class: OpenTelemetry\SDK\Common\Export\TransportFactoryInterface
+    factory:
+      - '@opentelemetry.transport.factory.provider'
+      - 'get'
+    arguments:
+      - 'TRACES'
+
+  opentelemetry.transport.factory.provider:
+    class: Drupal\opentelemetry\OpentelemetryTransportFactoryProvider
+    arguments:
+      - '@config.factory'
+      - '@messenger'
+
   opentelemetry.span_exporter:
     class: OpenTelemetry\Contrib\Otlp\SpanExporter
     factory:
@@ -45,17 +60,12 @@ services:
 
   opentelemetry.span_exporter.factory:
     class: OpenTelemetry\Contrib\Otlp\SpanExporterFactory
+    arguments:
+      - '@opentelemetry.traces.transport.factory'
 
   plugin.manager.opentelemetry_trace:
     class: Drupal\opentelemetry\OpentelemetryTraceManager
     parent: default_plugin_manager
-
-  Drupal\opentelemetry\EventSubscriber\OpentelemetryConfigureSubscriber:
-    arguments:
-      - '@config.factory'
-      - '@messenger'
-    tags:
-      - name: event_subscriber
 
   Drupal\opentelemetry\EventSubscriber\RequestTraceEventSubscriber:
     arguments:
@@ -77,7 +87,3 @@ services:
       - '@logger.channel.opentelemetry'
     tags:
       - name: event_subscriber
-
-  opentelemetry.tracer:
-    alias: opentelemetry
-    deprecated: The "%alias_id%" alias is deprecated. Renamed to just "opentelemetry" and will be removed in 1.0.

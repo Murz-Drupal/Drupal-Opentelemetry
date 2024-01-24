@@ -10,8 +10,18 @@ services:
       - name: logger
       - name: event_subscriber
 
+  opentelemetry.logs.transport.factory:
+    class: OpenTelemetry\SDK\Common\Export\TransportFactoryInterface
+    factory:
+      - '@opentelemetry.transport.factory.provider'
+      - 'get'
+    arguments:
+      - 'LOGS'
+
   opentelemetry.logs_exporter.factory:
     class: OpenTelemetry\Contrib\Otlp\LogsExporterFactory
+    arguments:
+      - '@opentelemetry.logs.transport.factory'
 
   opentelemetry.logs_exporter:
     class: OpenTelemetry\SDK\Logs\LogRecordExporterInterface
