@@ -345,6 +345,9 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     if (isset($this->rootSpan)) {
       $this->rootSpan->end();
     }
+    if (isset($this->rootScope)) {
+      $this->rootScope->detach();
+    }
     $this->tracerProvider->forceFlush();
   }
 

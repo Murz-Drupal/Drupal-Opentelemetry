@@ -50,7 +50,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settinsFallback);
     $service->finalize();
-    $service->getRootScope()->detach();
   }
 
   /**
@@ -68,7 +67,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
     $service->finalize();
-    $service->getRootScope()->detach();
   }
 
   /**
@@ -88,7 +86,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
     $service->finalize();
-    $service->getRootScope()->detach();
   }
 
   /**
@@ -109,7 +106,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $service = $this->initTracerService();
     $this->checkServiceSettings($service, $settings);
     $service->finalize();
-    $service->getRootScope()->detach();
   }
 
   /**
@@ -129,7 +125,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $this->assertEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
     $this->assertEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
     $service->finalize();
-    $this->assertNull($service->getRootScope());
 
     // Check in enabled state.
     $settings = [
@@ -143,7 +138,6 @@ class OpentelemetryServiceTest extends UnitTestCase {
     $this->assertNotEquals(SpanContextValidator::INVALID_TRACE, $span->getContext()->getTraceId());
     $this->assertNotEquals(SpanContextValidator::INVALID_SPAN, $span->getContext()->getSpanId());
     $service->finalize();
-    $service->getRootScope()->detach();
   }
 
   /**

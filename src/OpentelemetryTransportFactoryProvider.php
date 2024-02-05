@@ -69,6 +69,7 @@ class OpentelemetryTransportFactoryProvider {
    *   For null - returns the default transport for all data types.
    *
    * @return \OpenTelemetry\SDK\Common\Export\TransportFactoryInterface
+   *   A new or already existing transport factory.
    */
   public function get(string $dataType = NULL): TransportFactoryInterface {
     $protocol ??= $this->getProtocol($dataType);
