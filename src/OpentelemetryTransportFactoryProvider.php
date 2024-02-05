@@ -32,19 +32,27 @@ class OpentelemetryTransportFactoryProvider {
    * @var string
    */
   const DATA_TYPE_TRACES = 'TRACES';
+
   /**
    * Data type for metrics.
    *
    * @var string
    */
   const DATA_TYPE_METRICS = 'METRICS';
+
   /**
    * Data type for logs.
    *
    * @var string
    */
-
   const DATA_TYPE_LOGS = 'LOGS';
+
+  /**
+   * Compression method.
+   *
+   * @var string
+   */
+  const COMPRESSION = 'gzip';
 
   /**
    * Creates a new TransportFactory instance.
@@ -122,6 +130,8 @@ class OpentelemetryTransportFactoryProvider {
         $this->messenger->addError($message);
       }
     }
+
+    $this->fillEnv(Variables::OTEL_EXPORTER_OTLP_COMPRESSION, self::COMPRESSION);
   }
 
   /**
