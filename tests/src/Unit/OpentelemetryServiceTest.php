@@ -11,8 +11,11 @@ use Drupal\Tests\UnitTestCase;
 use OpenTelemetry\API\Trace\SpanContextValidator;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use OpenTelemetry\SDK\Common\Configuration\Defaults;
+use OpenTelemetry\SDK\Common\Configuration\KnownValues;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
 use OpenTelemetry\SDK\Common\Time\ClockFactory;
+use OpenTelemetry\SDK\Trace\Sampler\ParentBased;
+use OpenTelemetry\SDK\Trace\Sampler\TraceIdRatioBasedSampler;
 use OpenTelemetry\SDK\Trace\Span;
 use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
@@ -141,6 +144,24 @@ class OpentelemetryServiceTest extends UnitTestCase {
   }
 
   /**
+   * Tests the Sampler settings.
+   */
+  public function testSampler() {
+    $service1 = $this->initTracerService();
+    $sampler1 = TestHelpers::getPrivateProperty($service1->getTracer(), 'tracerSharedState')->getSampler();
+    $this->assertInstanceOf(ParentBased::class, $sampler1);
+    $service1->finalize();
+
+    putenv(Variables::OTEL_TRACES_SAMPLER . '=' . KnownValues::VALUE_TRACE_ID_RATIO);
+    putenv(Variables::OTEL_TRACES_SAMPLER_ARG . '=0.33');
+    $service2 = $this->initTracerService();
+    $sampler2 = TestHelpers::getPrivateProperty($service2->getTracer(), 'tracerSharedState')->getSampler();
+    $this->assertInstanceOf(TraceIdRatioBasedSampler::class, $sampler2);
+    $this->assertEquals("TraceIdRatioBasedSampler{0.330000}", $sampler2->getDescription());
+    $service2->finalize();
+  }
+
+  /**
    * Does check of applied service settings with configured values.
    *
    * @param \Drupal\opentelemetry\OpentelemetryServiceInterface $service
@@ -196,10 +217,12 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('opentelemetry.span_exporter.factory', initService: TRUE);
     TestHelpers::service('opentelemetry.logger_proxy', initService: TRUE);
     TestHelpers::service('plugin.manager.opentelemetry_trace', initService: TRUE);
+    TestHelpers::service('opentelemetry.sampler.factory', initService: TRUE);
 
     $spanExporter = TestHelpers::service('opentelemetry.span_exporter.factory')->create();
     $spanProcessor = new BatchSpanProcessor($spanExporter, ClockFactory::getDefault());
-    $tracerProvider = new TracerProvider($spanProcessor);
+    $sampler = TestHelpers::service('opentelemetry.sampler.factory')->create();
+    $tracerProvider = new TracerProvider($spanProcessor, $sampler);
     TestHelpers::service('opentelemetry.tracer_provider', $tracerProvider, TRUE);
 
     /** @var \Drupal\opentelemetry\OpentelemetryServiceInterface $service */

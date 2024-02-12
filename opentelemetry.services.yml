@@ -25,6 +25,16 @@ services:
     class: OpenTelemetry\SDK\Trace\TracerProvider
     arguments:
       - ['@opentelemetry.span_processor']
+      - '@opentelemetry.sampler'
+
+  opentelemetry.sampler.factory:
+    class: OpenTelemetry\SDK\Trace\SamplerFactory
+
+  opentelemetry.sampler:
+    class: OpenTelemetry\SDK\Trace\SamplerInterface
+    factory:
+      - '@opentelemetry.sampler.factory'
+      - 'create'
 
   opentelemetry.span_processor:
     class: OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor
