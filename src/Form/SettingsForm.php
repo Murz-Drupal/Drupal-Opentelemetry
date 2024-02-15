@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\opentelemetry\OpentelemetryService;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
+use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\Contrib\Grpc\GrpcTransport;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -68,7 +69,7 @@ class SettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $tracerActive = $this->openTelemetry->hasTracer();
     if ($tracerActive) {
-      $spanForm = $this->openTelemetry->getTracer()->spanBuilder('OpenTelemetry settings form')->startSpan();
+      $spanForm = $this->openTelemetry->getTracer()->spanBuilder('OpenTelemetry settings form')->setSpanKind(SpanKind::KIND_SERVER)->startSpan();
     }
     $settings = $this->config(OpentelemetryService::SETTINGS_KEY);
     $this->settingsTyped = $this->configTyped->get('opentelemetry.settings');
@@ -172,7 +173,7 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $settings->get(OpentelemetryService::SETTING_LOG_REQUESTS),
     ];
     if ($tracerActive) {
-      $spanParentForm = $this->openTelemetry->getTracer()->spanBuilder('parent buildForm')->startSpan();
+      $spanParentForm = $this->openTelemetry->getTracer()->spanBuilder('parent buildForm')->setSpanKind(SpanKind::KIND_SERVER)->startSpan();
     }
     $form = parent::buildForm($form, $form_state);
     if ($tracerActive) {

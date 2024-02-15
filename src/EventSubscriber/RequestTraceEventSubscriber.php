@@ -7,10 +7,12 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\Propagation\PropagationSetterInterface;
 use OpenTelemetry\Context\ScopeInterface;
 use OpenTelemetry\Contrib\Propagation\TraceResponse\TraceResponsePropagator;
+use OpenTelemetry\SemConv\TraceAttributes;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
@@ -119,7 +121,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
     if (!$event->isMainRequest()) {
       return;
     }
-    $this->requestSpan->setAttribute('http.status_code', $event->getResponse()->getStatusCode());
+    $this->requestSpan->setAttribute(TraceAttributes::HTTP_RESPONSE_STATUS_CODE, $event->getResponse()->getStatusCode());
     $scope = Context::storage()->scope();
     if ($scope) {
       $response = $event->getResponse();
@@ -173,14 +175,9 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       return;
     }
     $spanName = $this->openTelemetry->createRequestSpanName($request, $label);
-    $this->requestSpan = $tracer->spanBuilder($spanName)->startSpan();
-    $this->requestSpan->setAttributes(
-      [
-        'http.method' => $request->getMethod(),
-        'http.flavor' => $request->getProtocolVersion(),
-        'http.url' => $request->getSchemeAndHttpHost() . $request->getRequestUri(),
-      ]
-    );
+    $this->requestSpan = $tracer->spanBuilder($spanName)->setSpanKind(SpanKind::KIND_SERVER)->startSpan();
+    $attributes = $this->getTraceAttributesForRequestSpan($request);
+    $this->requestSpan->setAttributes($attributes);
     if ($this->openTelemetry->isDebugMode()) {
       // Calling statically to not add the dependency for non debug mode.
       // @codingStandardsIgnoreStart
@@ -195,6 +192,35 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       // @codingStandardsIgnoreEnd
     }
     $this->isSpanInitialized = TRUE;
+  }
+
+  /**
+   * Get trace attributes for "request" type span.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   A request.
+   *
+   * @return array
+   *   An array with trace attributes.
+   */
+  protected function getTraceAttributesForRequestSpan(Request $request): array {
+    $scheme = $request->getScheme();
+    $fullUrl = $request->getSchemeAndHttpHost() . $request->getRequestUri();
+
+    return [
+      TraceAttributes::HTTP_REQUEST_METHOD => $request->getMethod(),
+      TraceAttributes::NETWORK_PROTOCOL_VERSION => $request->getProtocolVersion(),
+      TraceAttributes::URL_FULL => $fullUrl,
+      TraceAttributes::URL_PATH => $request->getRequestUri(),
+      TraceAttributes::URL_QUERY => $request->getQueryString(),
+      TraceAttributes::URL_SCHEME => $scheme,
+      // Attributes http.url and http.scheme are deprecated but in order to
+      // populate transaction.type property on elastic apm, we need to add it.
+      // @see https://github.com/elastic/apm/blob/main/specs/agents/tracing-api-otel.md#transaction-type
+      // @see https://github.com/opentelemetry-php/sem-conv/blob/1.24.0/TraceAttributes.php
+      'http.url' => $fullUrl,
+      'http.scheme' => $scheme,
+    ];
   }
 
 }

@@ -7,6 +7,8 @@ use Drupal\Core\Database\Event\StatementExecutionEndEvent;
 use Drupal\Core\Database\Event\StatementExecutionStartEvent;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\SemConv\TraceAttributes;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -79,11 +81,11 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
     $driver ??= \Drupal::database()->driver();
 
     $tracer = $this->openTelemetry->getTracer();
-    $this->span = $tracer->spanBuilder('query-' . $queryCounter)->startSpan();
+    $this->span = $tracer->spanBuilder('query-' . $queryCounter)->setSpanKind(SpanKind::KIND_CLIENT)->startSpan();
 
-    $this->span->setAttribute('db.system', $driver);
-    $this->span->setAttribute('db.name', $event->target);
-    $this->span->setAttribute('db.statement', $event->queryString);
+    $this->span->setAttribute(TraceAttributes::DB_SYSTEM, $driver);
+    $this->span->setAttribute(TraceAttributes::DB_NAME, $event->target);
+    $this->span->setAttribute(TraceAttributes::DB_STATEMENT, $event->queryString);
   }
 
   /**
