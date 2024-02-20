@@ -69,7 +69,7 @@ class SettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $tracerActive = $this->openTelemetry->hasTracer();
     if ($tracerActive) {
-      $spanForm = $this->openTelemetry->getTracer()->spanBuilder('OpenTelemetry settings form')->setSpanKind(SpanKind::KIND_SERVER)->startSpan();
+      $spanForm = $this->openTelemetry->getTracer()->spanBuilder('OpenTelemetry settings form')->setSpanKind(SpanKind::KIND_CLIENT)->startSpan();
     }
     $settings = $this->config(OpentelemetryService::SETTINGS_KEY);
     $this->settingsTyped = $this->configTyped->get('opentelemetry.settings');
@@ -173,7 +173,7 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $settings->get(OpentelemetryService::SETTING_LOG_REQUESTS),
     ];
     if ($tracerActive) {
-      $spanParentForm = $this->openTelemetry->getTracer()->spanBuilder('parent buildForm')->setSpanKind(SpanKind::KIND_SERVER)->startSpan();
+      $spanParentForm = $this->openTelemetry->getTracer()->spanBuilder('parent buildForm')->setSpanKind(SpanKind::KIND_CLIENT)->startSpan();
     }
     $form = parent::buildForm($form, $form_state);
     if ($tracerActive) {
