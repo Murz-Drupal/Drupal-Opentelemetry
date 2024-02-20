@@ -11,11 +11,13 @@ use OpenTelemetry\API\LoggerHolder;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanContextValidator;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\ScopeInterface;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues;
 use OpenTelemetry\SDK\Trace\Span;
+use OpenTelemetry\SemConv\TraceAttributes;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -289,10 +291,14 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     $spanName = $this->createRequestSpanName($request);
     $parent = TraceContextPropagator::getInstance()->extract($request->headers->all());
 
-    $this->rootSpan = $tracer->spanBuilder($spanName)
+    $attributes = array_merge(
+      ['kind' => 'root'],
+      $this->getTraceAttributesForRequestSpan($request),
+    );
+    $this->rootSpan = $tracer->spanBuilder($spanName)->setSpanKind(SpanKind::KIND_SERVER)
       ->setStartTimestamp((int) ($request->server->get('REQUEST_TIME_FLOAT') * 1e9))
       ->setParent($parent)
-      ->setAttribute('kind', 'root')
+      ->setAttributes($attributes)
       ->startSpan();
 
     $this->rootScope = $this->rootSpan->activate();
@@ -363,6 +369,29 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
     if ($spanId !== SpanContextValidator::INVALID_SPAN) {
       $this->finalize();
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTraceAttributesForRequestSpan(Request $request): array {
+    $scheme = $request->getScheme();
+    $fullUrl = $request->getSchemeAndHttpHost() . $request->getRequestUri();
+
+    return [
+      TraceAttributes::HTTP_REQUEST_METHOD => $request->getMethod(),
+      TraceAttributes::NETWORK_PROTOCOL_VERSION => $request->getProtocolVersion(),
+      TraceAttributes::URL_FULL => $fullUrl,
+      TraceAttributes::URL_PATH => $request->getRequestUri(),
+      TraceAttributes::URL_QUERY => $request->getQueryString(),
+      TraceAttributes::URL_SCHEME => $scheme,
+      // Attributes http.url and http.scheme are deprecated but in order to
+      // populate transaction.type property on elastic apm, we need to add it.
+      // @see https://github.com/elastic/apm/blob/main/specs/agents/tracing-api-otel.md#transaction-type
+      // @see https://github.com/opentelemetry-php/sem-conv/blob/1.24.0/TraceAttributes.php
+      'http.url' => $fullUrl,
+      'http.scheme' => $scheme,
+    ];
   }
 
 }

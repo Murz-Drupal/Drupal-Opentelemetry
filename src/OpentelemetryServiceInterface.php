@@ -3,6 +3,7 @@
 namespace Drupal\opentelemetry;
 
 use OpenTelemetry\API\Trace\TracerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Interface for an OpenTelemetry service.
@@ -40,5 +41,16 @@ interface OpentelemetryServiceInterface {
    *   TRUE if enabled, FALSE if disabled.
    */
   public function isDebugMode(): bool;
+
+  /**
+   * Get trace attributes for request span.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   A request.
+   *
+   * @return array
+   *   An array with trace attributes.
+   */
+  public function getTraceAttributesForRequestSpan(Request $request): array;
 
 }
