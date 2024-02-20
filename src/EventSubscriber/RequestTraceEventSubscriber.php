@@ -78,7 +78,9 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents(): array {
     return [
-      KernelEvents::REQUEST => ['onRequest', 0],
+      // Set the priority to 1000 to run before other KernelEvents::REQUEST
+      // implementations.
+      KernelEvents::REQUEST => ['onRequest', 1000],
       KernelEvents::VIEW => ['onView', 0],
       KernelEvents::RESPONSE => ['onResponse', 0],
       KernelEvents::FINISH_REQUEST => ['onFinishRequest', 0],

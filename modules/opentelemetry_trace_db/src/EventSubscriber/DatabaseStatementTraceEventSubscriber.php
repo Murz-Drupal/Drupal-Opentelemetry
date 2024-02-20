@@ -54,7 +54,9 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
       return [];
     }
     return [
-      KernelEvents::REQUEST => 'onKernelRequest',
+      // Set the priority to 1000 to run before other KernelEvents::REQUEST
+      // implementations.
+      KernelEvents::REQUEST => ['onKernelRequest', 1000],
       StatementExecutionStartEvent::class => 'onStatementExecutionStart',
       StatementExecutionEndEvent::class => 'onStatementExecutionEnd',
     ];
