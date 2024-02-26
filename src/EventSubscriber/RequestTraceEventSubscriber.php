@@ -7,7 +7,6 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
-use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\Propagation\PropagationSetterInterface;
 use OpenTelemetry\Context\ScopeInterface;
@@ -177,7 +176,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
       return;
     }
     $spanName = $this->openTelemetry->createRequestSpanName($request, $label);
-    $this->requestSpan = $tracer->spanBuilder($spanName)->setSpanKind(SpanKind::KIND_CLIENT)->startSpan();
+    $this->requestSpan = $tracer->spanBuilder($spanName)->startSpan();
     $attributes = $this->openTelemetry->getTraceAttributesForRequestSpan($request);
     $this->requestSpan->setAttributes($attributes);
     if ($this->openTelemetry->isDebugMode()) {
