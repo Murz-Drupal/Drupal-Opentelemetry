@@ -61,3 +61,10 @@ variables:
   _PHPUNIT_EXTRA: --verbose
   # Convenient, and we have no secrets.
   _SHOW_ENVIRONMENT_VARIABLES: 1
+  # Ignore composer.json file from cspell check.
+  _CSPELL_IGNORE_PATHS: "\"composer.json\""
+
+composer:
+  variables:
+    # The `cspell` job that https://www.drupal.org/project/gitlab_templates/issues/3405955 introduced requires a core file that only exists in Drupal 10
+    _TARGET_CORE: ^10

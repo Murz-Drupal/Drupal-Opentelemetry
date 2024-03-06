@@ -44,14 +44,14 @@ class OpentelemetryServiceTest extends UnitTestCase {
    * @covers ::getTracer
    */
   public function testServiceDefaultSettings() {
-    $settinsFallback = [
+    $settingsFallback = [
       OpentelemetryService::SETTING_ENDPOINT => 'http://localhost:4318',
       OpentelemetryService::SETTING_SERVICE_NAME => OpentelemetryService::SERVICE_NAME_FALLBACK,
       OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL => 'http/protobuf',
     ];
-    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settinsFallback);
+    TestHelpers::service('config.factory')->stubSetConfig(OpentelemetryService::SETTINGS_KEY, $settingsFallback);
     $service = $this->initTracerService();
-    $this->checkServiceSettings($service, $settinsFallback);
+    $this->checkServiceSettings($service, $settingsFallback);
     $service->finalize();
   }
 

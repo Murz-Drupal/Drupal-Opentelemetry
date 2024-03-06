@@ -20,7 +20,7 @@ class OpentelemetryTransportFactoryProvider {
   use StringTranslationTrait;
 
   /**
-   * Initialised transports per protocol.
+   * Initialized transports per protocol.
    *
    * @var \OpenTelemetry\SDK\Common\Export\TransportFactoryInterface[]
    */

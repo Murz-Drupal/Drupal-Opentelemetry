@@ -32,7 +32,7 @@ Submit bug reports and feature suggestions, or track changes in the
 The module requires PHP at least 8.0, and depends on OpenTelemetry-PHP library.
 
 For advanced features it requires Drupal Core 10.1.x where the patch from the
-issue https://www.drupal.org/project/drupal/issues/3313355 is already commited
+issue https://www.drupal.org/project/drupal/issues/3313355 is already committed
 or applied manually.
 
 Also, to use [OpenTelemetry auto-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation)
@@ -58,7 +58,7 @@ To get OpenTelemetry server locally with a convenient web interface to view your
 traces you can use [DDEV project](https://ddev.readthedocs.io/) with my
 [Grafana Stack addon for DDEV](https://github.com/MurzNN/ddev-grafana):
 
-1. Enable debug mode in OpenTelemetry module settings, and confugure the `http://tempo:9411/api/v2/spans`.
+1. Enable debug mode in OpenTelemetry module settings, and configure the `http://tempo:9411/api/v2/spans`.
 
 2. Get the trace id from the message after enabling the setting.
 
@@ -75,5 +75,6 @@ button.
 
 
 ## Maintainers
-
+<!-- cSpell:disable -->
 - Alexey Korepov - [Murz](https://www.drupal.org/u/murz)
+<!-- cSpell:enable -->

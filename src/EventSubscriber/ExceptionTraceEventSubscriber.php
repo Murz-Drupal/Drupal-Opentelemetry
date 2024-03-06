@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Subscribes to kernel execptions events and generates a Span Event.
+ * Subscribes to kernel exceptions events and generates a Span Event.
  */
 class ExceptionTraceEventSubscriber implements EventSubscriberInterface {
 

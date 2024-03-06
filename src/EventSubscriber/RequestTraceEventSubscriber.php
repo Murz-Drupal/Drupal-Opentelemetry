@@ -42,14 +42,14 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
   protected ScopeInterface $scope;
 
   /**
-   * A flag to inidicate initialization of the span.
+   * A flag to indicate initialization of the span.
    *
    * @var bool
    */
   protected bool $isSpanInitialized = FALSE;
 
   /**
-   * A flag to inidicate the debug mode.
+   * A flag to indicate the debug mode.
    *
    * @var bool
    */

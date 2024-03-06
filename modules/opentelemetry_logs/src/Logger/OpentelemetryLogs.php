@@ -139,7 +139,7 @@ class OpentelemetryLogs implements PsrLogLoggerInterface, EventSubscriberInterfa
   }
 
   /**
-   * Converts a level integer to a string representiation of the RFC log level.
+   * Converts a level integer to a string representation of the RFC log level.
    *
    * @param int $level
    *      The log message level.

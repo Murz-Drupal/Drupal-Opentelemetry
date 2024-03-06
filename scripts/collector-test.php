@@ -71,6 +71,7 @@ for ($i = 0; $i < 3; $i++) {
   $span->addEvent(
     'found_login' . $i, [
       'id' => $i,
+      // cspell:disable-next-line
       'username' => 'otuser' . $i,
     ]
   );
@@ -89,5 +90,5 @@ echo 'Root span ended,        id: ' . $rootSpan->getContext()->getSpanId() . PHP
 echo 'Trace finished, trace id: ' . $rootSpan->getContext()->getTraceId() . PHP_EOL;
 
 $scope->detach();
-echo PHP_EOL . 'OTLP tracer finished. Now find spans by dispalyed ids in Traces list.' . PHP_EOL;
+echo PHP_EOL . 'OTLP tracer finished. Now find spans by displayed ids in Traces list.' . PHP_EOL;
 $tracerProvider->shutdown();

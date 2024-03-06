@@ -20,7 +20,7 @@ abstract class OpentelemetryTraceBase extends PluginBase {
   }
 
   /**
-   * Returns a string with description of the unvailability reason.
+   * Returns a string with description of the unavailability reason.
    */
   public function getUnavailableReason(): ?string {
     return NULL;

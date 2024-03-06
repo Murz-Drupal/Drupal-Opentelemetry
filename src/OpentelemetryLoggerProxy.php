@@ -154,7 +154,7 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
   }
 
   /**
-   * Logs repreated log entries on the request terminating.
+   * Logs repeated log entries on the request terminating.
    */
   public function onTerminate() {
     foreach ($this->repeatableErrors ?? [] as $logItem) {
