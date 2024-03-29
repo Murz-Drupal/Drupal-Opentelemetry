@@ -61,8 +61,6 @@ variables:
   _PHPUNIT_EXTRA: --verbose
   # Convenient, and we have no secrets.
   _SHOW_ENVIRONMENT_VARIABLES: 1
-  # Ignore composer.json file from cspell check.
-  _CSPELL_IGNORE_PATHS: "\"composer.json\""
 
 composer:
   variables:
