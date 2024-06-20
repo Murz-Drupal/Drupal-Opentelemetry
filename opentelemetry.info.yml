@@ -4,3 +4,5 @@ description: 'Provides collecting and exporting telemetry data for Drupal using 
 core_version_requirement: ^9 || ^10 || ^11
 package: 'Development'
 configure: opentelemetry.settings
+dependencies:
+  - opentelemetry:opentelemetry
