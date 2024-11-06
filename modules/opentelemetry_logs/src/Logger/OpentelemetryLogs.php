@@ -5,16 +5,17 @@ namespace Drupal\opentelemetry_logs\Logger;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Logger\LogMessageParserInterface;
-use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\opentelemetry\OpentelemetryService;
-use OpenTelemetry\API\Logs\EventLogger;
+use OpenTelemetry\API\Common\Time\ClockInterface;
 use OpenTelemetry\API\Logs\EventLoggerInterface;
-use OpenTelemetry\API\Logs\LoggerInterface;
 use OpenTelemetry\API\Logs\LogRecord;
+use OpenTelemetry\API\Logs\LoggerInterface;
+use OpenTelemetry\SDK\Logs\EventLogger;
 use OpenTelemetry\SDK\Logs\LoggerProviderInterface;
-use Psr\Log\LoggerInterface as PsrLogLoggerInterface;
 use Psr\Log\LogLevel;
+use Psr\Log\LoggerInterface as PsrLogLoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
@@ -65,22 +66,24 @@ class OpentelemetryLogs implements PsrLogLoggerInterface, EventSubscriberInterfa
    *   The parser to use when extracting message variables.
    * @param \OpenTelemetry\SDK\Logs\LoggerProviderInterface $loggerProvider
    *   The parser to use when extracting message variables.
+   * @param \OpenTelemetry\API\Common\Time\ClockInterface $clock
+   *   The OpenTelemetry clock service.
    */
   public function __construct(
     protected ConfigFactoryInterface $configFactory,
     protected RequestStack $requestStack,
     protected LogMessageParserInterface $parser,
     protected LoggerProviderInterface $loggerProvider,
+    protected ClockInterface $clock,
   ) {
     $this->settings = $this->configFactory->get(OpentelemetryService::SETTINGS_KEY);
     // @todo Make it configurable via settings.
     $this->eventName = "drupal-log";
     $this->logger = $this->loggerProvider->getLogger(
-      $this->settings->get(OpentelemetryService::SETTING_SERVICE_NAME)
+      $this->settings->get(OpentelemetryService::SETTING_SERVICE_NAME) ?? OpentelemetryService::SERVICE_NAME_FALLBACK
     );
-    // // @todo Reconfigure the logger for each new request.
-    $currentRequest = $this->requestStack->getCurrentRequest();
-    $this->eventLogger = new EventLogger($this->logger, $currentRequest->getHost());
+    // @todo Reconfigure the logger for each new request.
+    $this->eventLogger = new EventLogger($this->logger, $this->clock);
   }
 
   /**
@@ -93,16 +96,17 @@ class OpentelemetryLogs implements PsrLogLoggerInterface, EventSubscriberInterfa
     $message_placeholders = $this->parser->parseMessagePlaceholders($message, $context);
     $message = empty($message_placeholders) ? $message : strtr($message, $message_placeholders);
 
-    $record = $context + [
+    $recordData = $context + [
       'message' => $message,
       'base_url' => $base_url,
     ];
 
-    $record = (new LogRecord($record))
+    $record = new LogRecord($recordData);
+    $record
       ->setSeverityNumber($level)
       ->setSeverityText($this->getRfcLogLevelAsString($level));
 
-    $this->eventLogger->logEvent($this->eventName, $record);
+    $this->eventLogger->emit($this->eventName, $record);
   }
 
   /**

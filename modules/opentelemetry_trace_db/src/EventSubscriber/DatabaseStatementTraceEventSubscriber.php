@@ -5,6 +5,7 @@ namespace Drupal\opentelemetry_trace_db\EventSubscriber;
 use Drupal\Core\Database\Event\DatabaseEvent;
 use Drupal\Core\Database\Event\StatementExecutionEndEvent;
 use Drupal\Core\Database\Event\StatementExecutionStartEvent;
+use Drupal\opentelemetry\Exception\MissingClassDependencyException;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -50,12 +51,14 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
+    if (!interface_exists(TraceAttributes::class)) {
+      throw new MissingClassDependencyException(TraceAttributes::class, 'open-telemetry/sem-conv');
+    }
     if (!class_exists(StatementExecutionStartEvent::class)) {
       return [];
     }
     return [
-      // Set the priority to 1000 to run before other KernelEvents::REQUEST
-      // implementations.
+        // Set the priority to 1000 to run before other KernelEvents::REQUEST.
       KernelEvents::REQUEST => ['onKernelRequest', 1000],
       StatementExecutionStartEvent::class => 'onStatementExecutionStart',
       StatementExecutionEndEvent::class => 'onStatementExecutionEnd',
@@ -86,8 +89,8 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
     $this->span = $tracer->spanBuilder('query-' . $queryCounter)->setSpanKind(SpanKind::KIND_CLIENT)->startSpan();
 
     $this->span->setAttribute(TraceAttributes::DB_SYSTEM, $driver);
-    $this->span->setAttribute(TraceAttributes::DB_NAME, $event->target);
-    $this->span->setAttribute(TraceAttributes::DB_STATEMENT, $event->queryString);
+    $this->span->setAttribute(TraceAttributes::DB_NAMESPACE, $event->target);
+    $this->span->setAttribute(TraceAttributes::DB_QUERY_TEXT, $event->queryString);
   }
 
   /**

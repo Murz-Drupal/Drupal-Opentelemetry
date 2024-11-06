@@ -77,8 +77,7 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents(): array {
     return [
-      // Set the priority to 1000 to run before other KernelEvents::REQUEST
-      // implementations.
+        // Set the priority to 1000 to run before other KernelEvents::REQUEST.
       KernelEvents::REQUEST => ['onRequest', 1000],
       KernelEvents::VIEW => ['onView', 0],
       KernelEvents::RESPONSE => ['onResponse', 0],
@@ -138,8 +137,12 @@ class RequestTraceEventSubscriber implements EventSubscriberInterface {
         }
 
       };
-      $propagator = new TraceResponsePropagator();
-      $propagator->inject($response, $propagationSetter, $scope->context());
+
+      // @todo Make a waning in settings and status if it's not available.
+      if (class_exists(TraceResponsePropagator::class)) {
+        $propagator = new TraceResponsePropagator();
+        $propagator->inject($response, $propagationSetter, $scope->context());
+      }
     }
   }
 

@@ -1,0 +1,42 @@
+receivers:
+  otlp:
+    protocols:
+      grpc: {}
+      http: {}
+  otlp/2:
+    protocols:
+      grpc: {}
+processors:
+  batch: {}
+
+exporters:
+  file:
+    path: /var/tmp/opentelemetry-collector-log.json
+    # Enabling the rotation disables the write buffer.
+    # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/fileexporter/README.md
+    rotation:
+      max_days: 3
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - file
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - file
+    logs:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - file

@@ -8,61 +8,43 @@
 #   * DrupalSpoons
 ################
 
-################
-# Guidelines
-#
-# This template is designed to give any Contrib maintainer everything they need to test, without requiring modification. It is also designed to keep up to date with Core Development automatically through the use of include files that can be centrally maintained.
-#
-# However, you can modify this template if you have additional needs for your project.
-################
-
-################
-# Includes
-#
-# Additional configuration can be provided through includes.
-# One advantage of include files is that if they are updated upstream, the changes affect all pipelines using that include.
-#
-# Includes can be overridden by re-declaring anything provided in an include, here in gitlab-ci.yml
-# https://docs.gitlab.com/ee/ci/yaml/includes.html#override-included-configuration-values
-################
-
 include:
-  ################
-  # DrupalCI includes:
-  # As long as you include this, any future includes added by the Drupal Association will be accessible to your pipelines automatically.
-  # View these include files at https://git.drupalcode.org/project/gitlab_templates/
-  ################
   - project: $_GITLAB_TEMPLATES_REPO
     ref: $_GITLAB_TEMPLATES_REF
     file:
       - '/includes/include.drupalci.main.yml'
       - '/includes/include.drupalci.variables.yml'
       - '/includes/include.drupalci.workflows.yml'
-################
-# Pipeline configuration variables
-#
-# These are the variables provided to the Run Pipeline form that a user may want to override.
-#
-# Docs at https://git.drupalcode.org/project/gitlab_templates/-/blob/1.0.x/includes/include.drupalci.variables.yml
-################
-# variables:
-#   SKIP_ESLINT: '1'
 
-# Test multiple PHP versions from the https://git.drupalcode.org/project/keycdn/-/blob/8.x-1.x/.gitlab-ci.yml
-#
-# Start custom overrides.
-#
-
-variables:
-  # Broaden test coverage.
-  OPT_IN_TEST_PREVIOUS_MINOR: 1
-  OPT_IN_TEST_NEXT_MAJOR: 1
-  # Show more log output
-  _PHPUNIT_EXTRA: --verbose
-  # Convenient, and we have no secrets.
-  _SHOW_ENVIRONMENT_VARIABLES: 1
-
-composer:
+.nightwatch-base:
   variables:
-    # The `cspell` job that https://www.drupal.org/project/gitlab_templates/issues/3405955 introduced requires a core file that only exists in Drupal 10
-    _TARGET_CORE: ^10
+    OTELCOL_VERSION: "0.112.0"
+    OTELCOL_BINARY_DIRECTORY: $CI_PROJECT_DIR/tests/fixtures/opentelemetry-collector
+    # This variable is not available in the Nightwatch context.
+    # @see https://www.drupal.org/project/gitlab_templates/issues/3485612
+    # @todo Fix this when the issue is resolved.
+    OTELCOL_LOG_FILE: /var/tmp/opentelemetry-collector.log
+    OTELCOL_CONFIG_FILE: $CI_PROJECT_DIR/tests/fixtures/opentelemetry-collector/config.yaml
+    DRUPAL_NIGHTWATCH_IGNORE_DIRECTORIES: node_modules,vendor,.*,sites/*/files,sites/*/private,sites/simpletest,test3
+
+  before_script:
+  # Download the opentelemetry-collector binary.
+  # @todo Think about including the opentelemetry-collector into the image
+  # to not download it on each run.
+  - |
+    cd $OTELCOL_BINARY_DIRECTORY && \
+    curl --proto '=https' --tlsv1.2 -fL https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTELCOL_VERSION}/otelcol_${OTELCOL_VERSION}_linux_amd64.tar.gz -o otelcol.tar.gz && \
+    tar -xvf otelcol.tar.gz && \
+    cd $CI_PROJECT_DIR
+
+  # Create a log file for the opentelemetry-collector to fix permissions.
+  # @todo Check why the file is not created by the opentelemetry-collector
+  # and remove this workaround when fixed.
+  - |
+    touch $OTELCOL_LOG_FILE && chmod 666 $OTELCOL_LOG_FILE
+
+  # Start the opentelemetry-collector instance in the background and wait
+  # when it is initalized.
+  - |
+    ($OTELCOL_BINARY_DIRECTORY/otelcol --config $OTELCOL_CONFIG_FILE &) && \
+    $CI_PROJECT_DIR/tests/fixtures/wait-port.sh 4318

@@ -1,3 +1,4 @@
 opentelemetry
 ndjson
 ddev
+OTELCOL

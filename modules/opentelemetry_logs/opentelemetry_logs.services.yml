@@ -1,11 +1,13 @@
 services:
-  opentelemetry_logs:
+  opentelemetry.logs:
     class: Drupal\opentelemetry_logs\Logger\OpentelemetryLogs
     arguments:
       - '@config.factory'
       - '@request_stack'
       - '@logger.log_message_parser'
       - '@opentelemetry.logger_provider'
+      - '@opentelemetry.clock'
+
     tags:
       - name: logger
       - name: event_subscriber
@@ -18,21 +20,21 @@ services:
     arguments:
       - 'LOGS'
 
-  opentelemetry.logs_exporter.factory:
+  opentelemetry.logs.exporter.factory:
     class: OpenTelemetry\Contrib\Otlp\LogsExporterFactory
     arguments:
       - '@opentelemetry.logs.transport.factory'
 
-  opentelemetry.logs_exporter:
+  opentelemetry.logs.exporter:
     class: OpenTelemetry\SDK\Logs\LogRecordExporterInterface
     factory:
-      - '@opentelemetry.logs_exporter.factory'
+      - '@opentelemetry.logs.exporter.factory'
       - 'create'
 
-  opentelemetry.log_record_processor:
+  opentelemetry.logs.log_record_processor:
     class: OpenTelemetry\SDK\Logs\Processor\BatchLogRecordProcessor
     arguments:
-      - '@opentelemetry.logs_exporter'
+      - '@opentelemetry.logs.exporter'
       - '@opentelemetry.clock'
 
   opentelemetry.attributes.factory:
@@ -49,5 +51,5 @@ services:
   opentelemetry.logger_provider:
     class: OpenTelemetry\SDK\Logs\LoggerProvider
     arguments:
-      - '@opentelemetry.log_record_processor'
+      - '@opentelemetry.logs.log_record_processor'
       - '@opentelemetry.instrumentation_scope.factory'

@@ -1,19 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\opentelemetry\Unit;
 
+use Drupal\Tests\UnitTestCase;
 use Drupal\opentelemetry\OpentelemetryService;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use Drupal\opentelemetry\OpentelemetryTransportFactoryProvider;
 use Drupal\test_helpers\Stub\LoggerChannelFactoryStub;
 use Drupal\test_helpers\TestHelpers;
-use Drupal\Tests\UnitTestCase;
+use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\API\Trace\SpanContextValidator;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use OpenTelemetry\SDK\Common\Configuration\Defaults;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues;
 use OpenTelemetry\SDK\Common\Configuration\Variables;
-use OpenTelemetry\SDK\Common\Time\ClockFactory;
 use OpenTelemetry\SDK\Trace\Sampler\ParentBased;
 use OpenTelemetry\SDK\Trace\Sampler\TraceIdRatioBasedSampler;
 use OpenTelemetry\SDK\Trace\Span;
@@ -214,13 +216,13 @@ class OpentelemetryServiceTest extends UnitTestCase {
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
     TestHelpers::service('opentelemetry.transport.factory.provider', initService: TRUE);
     TestHelpers::service('opentelemetry.traces.transport.factory', \Drupal::service('opentelemetry.transport.factory.provider')->get(OpentelemetryTransportFactoryProvider::DATA_TYPE_TRACES));
-    TestHelpers::service('opentelemetry.span_exporter.factory', initService: TRUE);
+    TestHelpers::service('opentelemetry.span.exporter.factory', initService: TRUE);
     TestHelpers::service('opentelemetry.logger_proxy', initService: TRUE);
     TestHelpers::service('plugin.manager.opentelemetry_trace', initService: TRUE);
     TestHelpers::service('opentelemetry.sampler.factory', initService: TRUE);
 
-    $spanExporter = TestHelpers::service('opentelemetry.span_exporter.factory')->create();
-    $spanProcessor = new BatchSpanProcessor($spanExporter, ClockFactory::getDefault());
+    $spanExporter = TestHelpers::service('opentelemetry.span.exporter.factory')->create();
+    $spanProcessor = new BatchSpanProcessor($spanExporter, Clock::getDefault());
     $sampler = TestHelpers::service('opentelemetry.sampler.factory')->create();
     $tracerProvider = new TracerProvider($spanProcessor, $sampler);
     TestHelpers::service('opentelemetry.tracer_provider', $tracerProvider, TRUE);

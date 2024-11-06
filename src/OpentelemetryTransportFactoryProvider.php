@@ -6,6 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\opentelemetry\Exception\MissingClassDependencyException;
 use OpenTelemetry\Contrib\Grpc\GrpcTransport;
 use OpenTelemetry\Contrib\Otlp\Protocols;
 use OpenTelemetry\SDK\Common\Configuration\Configuration;
@@ -66,6 +67,11 @@ class OpentelemetryTransportFactoryProvider {
     protected ConfigFactoryInterface $configFactory,
     protected MessengerInterface $messenger,
   ) {
+
+    // Checks for dependencies, to throw a clearer exception message if missing.
+    interface_exists(Variables::class) || throw new MissingClassDependencyException(Variables::class, "open-telemetry/sdk");
+    class_exists(Protocols::class) || throw new MissingClassDependencyException(Protocols::class, "open-telemetry/exporter-otlp");
+
     $this->applyConfiguration();
   }
 
@@ -79,8 +85,8 @@ class OpentelemetryTransportFactoryProvider {
    * @return \OpenTelemetry\SDK\Common\Export\TransportFactoryInterface
    *   A new or already existing transport factory.
    */
-  public function get(string $dataType = NULL): TransportFactoryInterface {
-    $protocol ??= $this->getProtocol($dataType);
+  public function get(?string $dataType = NULL): TransportFactoryInterface {
+    $protocol = $this->getProtocol($dataType);
     if (!isset($this->transports[$protocol])) {
       $factoryClass = Registry::transportFactory($protocol);
       $this->transports[$protocol] = new $factoryClass();
@@ -165,7 +171,7 @@ class OpentelemetryTransportFactoryProvider {
    * @return string
    *   The protocol name.
    */
-  private function getProtocol(string $dataType = NULL): string {
+  private function getProtocol(?string $dataType = NULL): string {
     return match ($dataType) {
       self::DATA_TYPE_TRACES => Configuration::has(Variables::OTEL_EXPORTER_OTLP_TRACES_PROTOCOL) ?
       Configuration::getEnum(Variables::OTEL_EXPORTER_OTLP_TRACES_PROTOCOL) :

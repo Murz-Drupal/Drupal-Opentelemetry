@@ -39,7 +39,7 @@ services:
   opentelemetry.span_processor:
     class: OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor
     arguments:
-      - '@opentelemetry.span_exporter'
+      - '@opentelemetry.span.exporter'
       - '@opentelemetry.clock'
 
   opentelemetry.clock:
@@ -62,13 +62,13 @@ services:
       - '@config.factory'
       - '@messenger'
 
-  opentelemetry.span_exporter:
+  opentelemetry.span.exporter:
     class: OpenTelemetry\Contrib\Otlp\SpanExporter
     factory:
-      - '@opentelemetry.span_exporter.factory'
+      - '@opentelemetry.span.exporter.factory'
       - 'create'
 
-  opentelemetry.span_exporter.factory:
+  opentelemetry.span.exporter.factory:
     class: OpenTelemetry\Contrib\Otlp\SpanExporterFactory
     arguments:
       - '@opentelemetry.traces.transport.factory'

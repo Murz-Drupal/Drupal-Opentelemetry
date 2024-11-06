@@ -317,7 +317,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    * @return string
    *   The prepared span name.
    */
-  public function createRequestSpanName(Request $request, string $label = NULL): string {
+  public function createRequestSpanName(Request $request, ?string $label = NULL): string {
     $name = $request->getMethod() . ' ' . $request->getRequestUri();
     if ($label) {
       $name .= " ($label)";

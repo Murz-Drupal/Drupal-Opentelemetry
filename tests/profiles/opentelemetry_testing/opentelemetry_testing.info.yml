@@ -1,0 +1,12 @@
+name: Opentelemetry Testing
+type: profile
+description: 'Profile for running opentelemetry functional tests.'
+core_version_requirement: ^9 || ^10 || ^11
+hidden: true
+install:
+  # Enable page_cache and dynamic_page_cache in testing, to ensure that as many
+  # tests as possible run with them enabled.
+  - drupal:page_cache
+  - dynamic_page_cache
+  - opentelemetry:opentelemetry
+  - test_helpers:test_helpers_functional
