@@ -31,6 +31,11 @@ Submit bug reports and feature suggestions, or track changes in the
 
 The module requires PHP at least 8.0, and depends on OpenTelemetry-PHP library.
 
+Also it requires an installed composer package which provides 
+the "psr/http-client-implementation", the exact package depends on the Drupal
+version, for Drupal 9.x it can be "php-http/guzzle6-adapter", for Drupal 10.x
+- "php-http/guzzle7-adapter", etc.
+
 For advanced features it requires Drupal Core 10.1.x where the patch from the
 issue https://www.drupal.org/project/drupal/issues/3313355 is already committed
 or applied manually.
