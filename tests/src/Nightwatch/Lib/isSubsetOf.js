@@ -18,7 +18,10 @@
  * True if `subset` is a subset of `superset`, false otherwise.
  */
 
-module.exports = function isSubset(subset, superset, options = {}) {
+module.exports = function isSubsetOf(subset, superset, options = {}) {
+  // Default options with orderStrict check disabled
+  const { throwError = false, orderStrict = false } = options;
+
   // Helper function to check if a value is an object
   function isObject(obj) {
     return obj !== null && typeof obj === 'object' && !Array.isArray(obj);
@@ -27,7 +30,14 @@ module.exports = function isSubset(subset, superset, options = {}) {
   // Helper function to check if an element is a subset of another
   function isEqual(value1, value2) {
     if (Array.isArray(value1) && Array.isArray(value2)) {
-      // Check every element in value1 is present in value2
+      if (orderStrict) {
+        // Check strict equality and order if required
+        return (
+          value1.length === value2.length &&
+          value1.every((item, index) => isEqual(item, value2[index]))
+        );
+      }
+      // Check every element in value1 is present in value2 ignoring order
       return value1.every((item1) =>
         value2.some((item2) => isEqual(item1, item2)),
       );
@@ -38,13 +48,13 @@ module.exports = function isSubset(subset, superset, options = {}) {
         (key) => key in value2 && isEqual(value1[key], value2[key]),
       );
     }
-    // Otherwise, use strict equality
+    // Otherwise, use strict equality for primitive values
     return value1 === value2;
   }
 
   // Function to handle errors based on `options`
   function handleError() {
-    if (options && options.throwError) {
+    if (throwError) {
       throw new Error(
         `Expected\n${JSON.stringify(subset, null, 2)}\nto be a subset of\n${JSON.stringify(superset, null, 2)}`,
       );
@@ -60,19 +70,27 @@ module.exports = function isSubset(subset, superset, options = {}) {
     return true;
   }
 
-  // Ensure both inputs are objects if not arrays
+  // Handle primitive comparisons directly
+  if (
+    !isObject(subset) &&
+    !Array.isArray(subset) &&
+    !isObject(superset) &&
+    !Array.isArray(superset)
+  ) {
+    return isEqual(subset, superset) ? true : handleError();
+  }
+
+  // Ensure both inputs are objects if not arrays or primitives
   if (!isObject(subset) || !isObject(superset)) {
     return handleError();
   }
 
-  // Iterate over the subset keys
-  // eslint-disable-next-line no-restricted-syntax
-  for (const key in subset) {
-    // Check if the superset contains the key and the corresponding value is equal
-    if (!(key in superset) || !isEqual(subset[key], superset[key])) {
-      return handleError();
-    }
-  }
-
-  return true;
+  // Iterate over the subset keys using Object.keys().forEach
+  const keys = Object.keys(subset);
+  return (
+    keys.every((key) => {
+      // Check if the superset contains the key and the corresponding value is equal
+      return key in superset && isEqual(subset[key], superset[key]);
+    }) || handleError()
+  );
 };

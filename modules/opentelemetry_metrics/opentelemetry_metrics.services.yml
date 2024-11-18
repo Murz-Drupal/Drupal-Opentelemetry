@@ -1,0 +1,41 @@
+services:
+  opentelemetry.metrics:
+    class: Drupal\opentelemetry_metrics\OpentelemetryMetrics
+    arguments:
+      - '@opentelemetry.metrics.reader'
+      - '@opentelemetry.metrics.resource'
+    tags:
+      - name: event_subscriber
+
+  opentelemetry.metrics.resource:
+    class: OpenTelemetry\SDK\Resource\ResourceInfo
+    factory:
+      # @todo Move to a service
+      - 'OpenTelemetry\SDK\Resource\ResourceInfoFactory'
+      - 'defaultResource'
+
+  opentelemetry.metrics.reader:
+    class: OpenTelemetry\SDK\Metrics\MetricReader\ExportingReader
+    arguments:
+      - '@opentelemetry.metrics.exporter'
+
+
+  opentelemetry.metrics.exporter:
+    class: OpenTelemetry\SDK\Metrics\PushMetricExporterInterface
+    factory:
+      - '@opentelemetry.metrics.exporter.factory'
+      - 'create'
+
+  opentelemetry.metrics.exporter.factory:
+    class: OpenTelemetry\Contrib\Otlp\MetricExporterFactory
+    arguments:
+      - '@opentelemetry.metrics.transport.factory'
+
+  opentelemetry.metrics.transport.factory:
+    class: OpenTelemetry\SDK\Common\Export\TransportFactoryInterface
+    factory:
+      # @todo Make it work without opentelemetry.
+      - '@opentelemetry.transport.factory.provider'
+      - 'get'
+    arguments:
+      - 'METRICS'

@@ -28,7 +28,7 @@ class OpenTelemetrySysLog extends SysLog {
         '!trace_id' => $traceId,
       ]);
     }
-    catch (\Exception $e) {
+    catch (\Exception) {
     }
 
     parent::syslogWrapper($level, $entry);

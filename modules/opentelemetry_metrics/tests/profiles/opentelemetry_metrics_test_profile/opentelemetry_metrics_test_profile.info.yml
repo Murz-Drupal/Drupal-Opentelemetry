@@ -1,0 +1,7 @@
+name: OpenTelemetry Metrics Test profile
+type: profile
+description: OpenTelemetry Metrics test profile. Required to install the test configuration.
+package: Testing
+core_version_requirement: ^10 || ^11
+dependencies:
+  - opentelemetry:opentelemetry_metrics_test

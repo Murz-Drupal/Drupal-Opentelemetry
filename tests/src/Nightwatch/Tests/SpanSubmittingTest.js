@@ -1,14 +1,5 @@
-const fs = require('fs');
-const isSubset = require('../Lib/isSubset');
-
-// @todo Remove the hardcoded path to the log file when https://www.drupal.org/project/gitlab_templates/issues/3485612 is fixed.
-const logFilePath =
-  process.env.OTELCOL_LOG_FILE ?? '/var/tmp/opentelemetry-collector.log';
-if (!logFilePath) {
-  throw new Error(
-    'The OTELCOL_LOG_FILE env variable is not set. Put there the full path to the OpenTelemetry Collector log file.',
-  );
-}
+const isSubsetOf = require('../Lib/isSubsetOf');
+const readNewLogs = require('../Lib/readNewLogs');
 
 const spanKindTypes = {
   KIND_INTERNAL: 0,
@@ -17,34 +8,6 @@ const spanKindTypes = {
   KIND_PRODUCER: 3,
   KIND_CONSUMER: 4,
 };
-
-let logFileLastPosition = 0;
-
-function readNewLogs() {
-  const logFile = fs.openSync(logFilePath, 'r');
-  const logFileSize = fs.fstatSync(logFile).size;
-  const bytesToRead = logFileSize - logFileLastPosition;
-  const buffer = Buffer.alloc(bytesToRead);
-  const bytesRead = fs.readSync(
-    logFile,
-    buffer,
-    0,
-    bytesToRead,
-    logFileLastPosition,
-  );
-  const lines = buffer.toString('utf8', 0, bytesRead).split('\n');
-  fs.closeSync(logFile);
-  logFileLastPosition = logFileSize;
-  return lines
-    .map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch (e) {
-        return line;
-      }
-    })
-    .filter((line) => line !== '');
-}
 
 function assertSpans(
   { spans, path, additionalSpans = [], defaultSpansProperties = [] },
@@ -82,7 +45,7 @@ function assertSpans(
     );
   }
   browser.assert.ok(
-    isSubset(expected, spans, { throwError: true }),
+    isSubsetOf(expected, spans, { throwError: true }),
     'Spans content is equals to expected values',
   );
 }
@@ -94,19 +57,15 @@ module.exports = {
       installProfile: 'opentelemetry_testing',
     });
   },
-  beforeEach() {
+  beforeEach(browser) {
     // Calling this to seek to the end of the file.
     // @todo Add locking to make work with parallel tests.
-    readNewLogs();
+    readNewLogs(browser);
   },
   after(browser) {
     browser.drupalUninstall();
   },
   'Check submitted spans': (browser) => {
-    // We need to wait while the telemetry data is transmitted and written to
-    // the log file.
-    const waitForLogTime = 500;
-
     // A list of spans, expected in log lines.
     const expectedLogsSpans = [];
 
@@ -150,10 +109,9 @@ module.exports = {
           ],
         });
       })
-      .pause(waitForLogTime)
       .perform(() => {
         // Collect all added logs and check spans.
-        const logs = readNewLogs();
+        const logs = readNewLogs(browser);
         // eslint-disable-next-line no-restricted-syntax
         for (const log of logs) {
           assertSpans(
