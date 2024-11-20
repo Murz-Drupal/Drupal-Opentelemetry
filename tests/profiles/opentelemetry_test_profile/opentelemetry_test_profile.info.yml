@@ -1,0 +1,7 @@
+name: Opentelemetry Test profile.
+type: profile
+description: 'Profile for running opentelemetry functional tests.'
+core_version_requirement: ^9 || ^10 || ^11
+hidden: true
+install:
+  - opentelemetry:opentelemetry_test

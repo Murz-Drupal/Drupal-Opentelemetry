@@ -105,8 +105,7 @@ module.exports = {
 
     testCases.forEach(({ description, subset, superset, expectedResult }) => {
       const result = isSubsetOf(subset, superset);
-      browser.assert.equal(result, expectedResult);
+      browser.assert.equal(result, expectedResult, description);
     });
-  }
-
-}
+  },
+};

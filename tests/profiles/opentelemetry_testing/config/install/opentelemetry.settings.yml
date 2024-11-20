@@ -1,9 +1,0 @@
-endpoint: http://opentelemetry-collector:4318
-disable: false
-authorization: ''
-otel_exporter_otlp_protocol: http/protobuf
-service_name: Drupal
-debug_mode: false
-logger_deduplication: true
-span_plugins_enabled: []
-log_requests: false

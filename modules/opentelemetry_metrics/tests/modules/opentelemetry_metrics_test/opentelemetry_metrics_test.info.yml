@@ -1,4 +1,4 @@
-name: OpenTelemetry Metrics Testing
+name: OpenTelemetry Metrics Test
 type: module
 description: OpenTelemetry Metrics helper module used for tests.
 package: Testing

@@ -1,9 +1,10 @@
 <?php
 
-namespace Drupal\opentelemetry_trace_db\EventSubscriber;
+namespace Drupal\opentelemetry\EventSubscriber;
 
 use Drupal\Core\Database\Event\DatabaseEvent;
 use Drupal\Core\Database\Event\StatementExecutionEndEvent;
+use Drupal\Core\Database\Event\StatementExecutionFailureEvent;
 use Drupal\Core\Database\Event\StatementExecutionStartEvent;
 use Drupal\opentelemetry\Exception\MissingClassDependencyException;
 use Drupal\opentelemetry\OpentelemetryServiceInterface;
@@ -62,11 +63,12 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
       KernelEvents::REQUEST => ['onKernelRequest', 1000],
       StatementExecutionStartEvent::class => 'onStatementExecutionStart',
       StatementExecutionEndEvent::class => 'onStatementExecutionEnd',
+      StatementExecutionFailureEvent::class => 'onStatementExecutionFailure',
     ];
   }
 
   /**
-   * Subscribes to a statement execution started event.
+   * Starts the database query span.
    *
    * @param \Drupal\Core\Database\Event\StatementExecutionStartEvent $event
    *   The database event.
@@ -86,23 +88,45 @@ class DatabaseStatementTraceEventSubscriber implements EventSubscriberInterface 
     $driver ??= \Drupal::database()->driver();
 
     $tracer = $this->openTelemetry->getTracer();
-    $this->span = $tracer->spanBuilder('query-' . $queryCounter)->setSpanKind(SpanKind::KIND_CLIENT)->startSpan();
 
+    $spanBuilder = $tracer->spanBuilder('query-' . $queryCounter)->setSpanKind(SpanKind::KIND_CLIENT);
+    $this->span = $spanBuilder->startSpan();
     $this->span->setAttribute(TraceAttributes::DB_SYSTEM, $driver);
     $this->span->setAttribute(TraceAttributes::DB_NAMESPACE, $event->target);
     $this->span->setAttribute(TraceAttributes::DB_QUERY_TEXT, $event->queryString);
   }
 
   /**
-   * Subscribes to a statement execution finished event.
+   * Ends the database query span.
    *
    * @param \Drupal\Core\Database\Event\StatementExecutionEndEvent $event
    *   The database event.
    */
   public function onStatementExecutionEnd(StatementExecutionEndEvent $event): void {
-    if (!$this->openTelemetry->getTracer()) {
+    if (
+      !$this->openTelemetry->getTracer()
+      || !isset($this->span)
+    ) {
       return;
     }
+    $this->span->end();
+  }
+
+  /**
+   * Produces an event if the database query fails.
+   *
+   * @param \Drupal\Core\Database\Event\StatementExecutionFailureEvent $event
+   *   The StatementExecutionFailureEvent event.
+   */
+  public function onStatementExecutionFailure(StatementExecutionFailureEvent $event): void {
+    if (
+      !$this->openTelemetry->getTracer()
+      || !isset($this->span)
+    ) {
+      return;
+    }
+    $exception = new \Exception($event->exceptionMessage, $event->exceptionCode);
+    $this->span->recordException($exception);
     $this->span->end();
   }
 

@@ -20,12 +20,18 @@ include:
   variables:
     OTELCOL_VERSION: "0.112.0"
     OTELCOL_BINARY_DIRECTORY: $CI_PROJECT_DIR/tests/fixtures/opentelemetry-collector
+    OTELCOL_CONFIG_FILE: $CI_PROJECT_DIR/tests/fixtures/opentelemetry-collector/config.yaml
+    OTELCOL_LOG_DIRECTORY: /var/tmp/opentelemetry-collector
     # This variable is not available in the Nightwatch context.
     # @see https://www.drupal.org/project/gitlab_templates/issues/3485612
+    # Keep in sync with the tests/fixtures/opentelemetry-collector/config.yaml
     # @todo Fix this when the issue is resolved.
-    OTELCOL_LOG_FILE: /var/tmp/opentelemetry-collector.log
-    OTELCOL_CONFIG_FILE: $CI_PROJECT_DIR/tests/fixtures/opentelemetry-collector/config.yaml
-    DRUPAL_NIGHTWATCH_IGNORE_DIRECTORIES: node_modules,vendor,.*,sites/*/files,sites/*/private,sites/simpletest,test3
+    OTELCOL_LOG_FILE: $OTELCOL_LOG_DIRECTORY/opentelemetry-collector.log
+    # This variable is not available in the Nightwatch context.
+    # @see https://www.drupal.org/project/gitlab_templates/issues/3485612
+    # Keep in sync with the tests/fixtures/opentelemetry-collector/config.yaml
+    # @todo Fix this when the issue is resolved.
+    DRUPAL_OPENTELEMETRY_ENDPOINT: http://localhost:4318
 
   before_script:
   # Download the opentelemetry-collector binary.
@@ -41,6 +47,7 @@ include:
   # @todo Check why the file is not created by the opentelemetry-collector
   # and remove this workaround when fixed.
   - |
+    mkdir $OTELCOL_LOG_DIRECTORY && chmod 777 $OTELCOL_LOG_DIRECTORY
     touch $OTELCOL_LOG_FILE && chmod 666 $OTELCOL_LOG_FILE
 
   # Start the opentelemetry-collector instance in the background and wait

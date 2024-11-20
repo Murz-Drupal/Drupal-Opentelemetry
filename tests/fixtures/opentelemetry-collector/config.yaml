@@ -11,11 +11,13 @@ processors:
 
 exporters:
   file:
-    path: /var/tmp/opentelemetry-collector-log.json
-    # Enabling the rotation disables the write buffer.
-    # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/fileexporter/README.md
+    # Keep in sync with the OTELCOL_LOG_FILE variable in .gitlab-ci.yml.
+    path: /var/tmp/opentelemetry-collector/opentelemetry-collector.log
+    # Enable the rotation to disable the write buffer.
+    # @see https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/fileexporter/README.md
     rotation:
       max_days: 3
+    flush_interval: 1ms
 
 service:
   pipelines:

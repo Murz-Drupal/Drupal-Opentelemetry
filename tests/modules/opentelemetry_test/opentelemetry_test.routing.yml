@@ -1,0 +1,13 @@
+opentelemetry_test.database_statement_trace_test:
+  path: '/opentelemetry-test/database-statement-trace-test'
+  defaults:
+    _controller: 'Drupal\opentelemetry_test\Controller\OpenTelemetryTestController::databaseStatementTraceTest'
+  requirements:
+    _access: 'TRUE'
+
+opentelemetry_test.database_statement_trace_execution_failure_test:
+  path: '/opentelemetry-test/database-statement-trace-execution-failure-test'
+  defaults:
+    _controller: 'Drupal\opentelemetry_test\Controller\OpenTelemetryTestController::databaseStatementTraceExecutionFailureTest'
+  requirements:
+    _access: 'TRUE'

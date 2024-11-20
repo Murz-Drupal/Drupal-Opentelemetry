@@ -1,24 +1,6 @@
-const isSubset = require('../../../../../../tests/src/Nightwatch/Lib/isSubsetOf');
-const readNewLogs = require('../../../../../../tests/src/Nightwatch/Lib/readNewLogs');
+const OtelLogWatcher = require('../../../../../../tests/src/Nightwatch/Lib/OtelLogWatcher');
 
-function getScopeMetric(name, metrics) {
-  return {
-    scope: {
-      name,
-    },
-    metrics,
-  };
-}
-
-function getResourceMetrics(scopeMetrics) {
-  return {
-    resourceMetrics: [
-      {
-        scopeMetrics,
-      },
-    ],
-  };
-}
+let logStream;
 
 module.exports = {
   '@tags': ['opentelemetry', 'opentelemetry_metrics'],
@@ -27,24 +9,20 @@ module.exports = {
       installProfile: 'opentelemetry_metrics_test_profile',
     });
   },
-  beforeEach(browser) {
-    // Calling this to seek to the end of the file.
-    // @todo Add locking to make work with parallel tests.
-    readNewLogs(browser);
+  beforeEach() {
+    logStream = new OtelLogWatcher();
   },
   after(browser) {
     browser.drupalUninstall();
   },
   'Test metrics pushing': (browser) => {
-    // A list of spans, expected in log lines.
-    const expectedResources = [];
     browser
-      .drupalRelativeURL('/opentelemetry-metrics-test/metrics')
       .perform(() => {
         // Entry #1.
-        expectedResources.push(
-          getResourceMetrics([
-            getScopeMetric('opentelemetry_metrics_test.meter1', [
+        logStream.expectMetricResourceItem([
+          {
+            scope: { name: 'opentelemetry_metrics_test.meter1' },
+            metrics: [
               {
                 name: 'counter1',
                 description: 'counter1 description',
@@ -57,8 +35,11 @@ module.exports = {
                   ],
                 },
               },
-            ]),
-            getScopeMetric('opentelemetry_metrics_test.meter2', [
+            ],
+          },
+          {
+            scope: { name: 'opentelemetry_metrics_test.meter2' },
+            metrics: [
               {
                 name: 'counter2',
                 description: 'counter2 description',
@@ -67,13 +48,49 @@ module.exports = {
                   isMonotonic: true,
                 },
               },
-            ]),
-          ]),
-        );
+            ],
+          },
+        ]);
+
         // Entry #2.
-        expectedResources.push(
-          getResourceMetrics([
-            getScopeMetric('opentelemetry_metrics_test.meter1', [
+        logStream.expectMetricResourceItem([
+          {
+            scope: { name: 'opentelemetry_metrics_test.meter1' },
+            metrics: [
+              {
+                name: 'counter1',
+                description: 'counter1 description',
+                sum: {
+                  dataPoints: [
+                    {
+                      asInt: '6',
+                      exemplars: [{ asInt: '1' }, { asInt: '1' }],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            scope: { name: 'opentelemetry_metrics_test.meter2' },
+            metrics: [
+              {
+                name: 'counter2',
+                description: 'counter2 description',
+                unit: 'kg',
+                sum: {
+                  isMonotonic: true,
+                },
+              },
+            ],
+          },
+        ]);
+
+        // Entry #3.
+        logStream.expectMetricResourceItem([
+          {
+            scope: { name: 'opentelemetry_metrics_test.meter1' },
+            metrics: [
               {
                 name: 'counter1',
                 description: 'counter1 description',
@@ -90,8 +107,11 @@ module.exports = {
                   ],
                 },
               },
-            ]),
-            getScopeMetric('opentelemetry_metrics_test.meter2', [
+            ],
+          },
+          {
+            scope: { name: 'opentelemetry_metrics_test.meter2' },
+            metrics: [
               {
                 name: 'counter2',
                 description: 'counter2 description',
@@ -110,23 +130,13 @@ module.exports = {
                   isMonotonic: true,
                 },
               },
-            ]),
-          ]),
-        );
+            ],
+          },
+        ]);
       })
+      .drupalRelativeURL('/opentelemetry-metrics-test/metrics')
       .perform(() => {
-        const logs = readNewLogs(browser);
-        // We need to use the `for` loop here, because the `await` inside the
-        // forEach loop doesn't work.
-        // eslint-disable-next-line no-restricted-syntax
-        for (const entry of logs) {
-          if (entry.resourceMetrics === undefined) {
-            continue;
-          }
-          browser.assert.ok(
-            isSubset(expectedResources.shift(), entry, { throwError: true }),
-          );
-        }
+        logStream.checkAllItemsFound(browser);
       });
   },
 };

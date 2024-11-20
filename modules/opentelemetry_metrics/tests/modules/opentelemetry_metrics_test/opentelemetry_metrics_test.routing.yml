@@ -2,3 +2,5 @@ opentelemetry_metrics_test.metrics:
   path: '/opentelemetry-metrics-test/metrics'
   defaults:
     _controller: 'Drupal\opentelemetry_metrics_test\Controller\OpenTelemetryMetricsTestController::view'
+  requirements:
+    _access: 'TRUE'
