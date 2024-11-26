@@ -12,6 +12,7 @@ use Drupal\opentelemetry\OpentelemetryServiceInterface;
 use Drupal\opentelemetry\OpentelemetryTraceManager;
 use OpenTelemetry\Contrib\Grpc\GrpcTransport;
 use OpenTelemetry\Contrib\Otlp\Protocols;
+use OpenTelemetry\SDK\Common\Configuration\Variables;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -72,15 +73,22 @@ class SettingsForm extends ConfigFormBase {
     }
     $settings = $this->config(OpentelemetryService::SETTINGS_KEY);
     $this->settingsTyped = $this->configTyped->get('opentelemetry.settings');
+
     $form[OpentelemetryService::SETTING_ENDPOINT] = [
       '#type' => 'url',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_ENDPOINT),
-      '#description' => $this->t('URL to the OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>@example</code>', [
-        '@example' => 'http://localhost:4318',
-      ]),
+      '#description' => $this->t(
+        'URL to the OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>@example</code>', [
+          '@example' => 'http://localhost:4318',
+        ]
+      ),
       '#default_value' => $settings->get(OpentelemetryService::SETTING_ENDPOINT),
       '#required' => FALSE,
     ];
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_ENDPOINT], Variables::OTEL_EXPORTER_OTLP_ENDPOINT);
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_ENDPOINT], Variables::OTEL_EXPORTER_OTLP_TRACES_ENDPOINT);
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_ENDPOINT], Variables::OTEL_EXPORTER_OTLP_METRICS_ENDPOINT);
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_ENDPOINT], Variables::OTEL_EXPORTER_OTLP_LOGS_ENDPOINT);
     $form[OpentelemetryService::SETTING_DISABLE] = [
       '#type' => 'checkbox',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_DISABLE),
@@ -91,18 +99,22 @@ class SettingsForm extends ConfigFormBase {
     $form[OpentelemetryService::SETTING_AUTHORIZATION] = [
       '#type' => 'textfield',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_AUTHORIZATION),
-      '#description' => $this->t('The <code>Authorization</code> header value. Example: <code>@example</code>. Keep empty if no authorization is required.', [
-        '@example' => 'Bearer: wOMdCaSGS8JZc2Fva5',
-      ]),
+      '#description' => $this->t(
+        'The <code>Authorization</code> header value. Example: <code>@example</code>. Keep empty if no authorization is required.', [
+          '@example' => 'Bearer: wOMdCaSGS8JZc2Fva5',
+        ]
+      ),
       '#default_value' => $settings->get(OpentelemetryService::SETTING_AUTHORIZATION),
       '#required' => FALSE,
     ];
     $form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL] = [
       '#type' => 'radios',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
-      '#description' => $this->t('OpenTelemetry protocol, default value: <code>@url</code>', [
-        '@url' => OpentelemetryService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK,
-      ]),
+      '#description' => $this->t(
+        'OpenTelemetry protocol, default value: <code>@url</code>', [
+          '@url' => OpentelemetryService::OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK,
+        ]
+      ),
       '#default_value' => $settings->get(OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL),
       '#options' => [
         Protocols::HTTP_PROTOBUF => Protocols::HTTP_PROTOBUF . ' ' . $this->t('(HTTP Protobuf, Protocol Buffers)'),
@@ -112,6 +124,11 @@ class SettingsForm extends ConfigFormBase {
       ],
       '#required' => TRUE,
     ];
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL], Variables::OTEL_EXPORTER_OTLP_PROTOCOL);
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL], Variables::OTEL_EXPORTER_OTLP_TRACES_PROTOCOL);
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL], Variables::OTEL_EXPORTER_OTLP_METRICS_PROTOCOL);
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL], Variables::OTEL_EXPORTER_OTLP_LOGS_PROTOCOL);
+
     if (!class_exists(GrpcTransport::class)) {
       $form[OpentelemetryService::SETTING_OTEL_EXPORTER_OTLP_PROTOCOL][Protocols::GRPC]['#disabled'] = TRUE;
       // @see https://www.drupal.org/project/coder/issues/3326197
@@ -133,6 +150,8 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $settings->get(OpentelemetryService::SETTING_SERVICE_NAME),
       '#required' => TRUE,
     ];
+    $this->checkOverriddenValue($form[OpentelemetryService::SETTING_SERVICE_NAME], Variables::OTEL_SERVICE_NAME);
+
     $form[OpentelemetryService::SETTING_LOGGER_DEDUPLICATION] = [
       '#type' => 'checkbox',
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_LOGGER_DEDUPLICATION),
@@ -215,6 +234,26 @@ class SettingsForm extends ConfigFormBase {
       $label = $fallback ?: $key;
     }
     return $label;
+  }
+
+  /**
+   * Checks for the overridden value and extend the description.
+   *
+   * @param array $element
+   *   A form element with the default value.
+   * @param string $envVariable
+   *   The env variable name to check.
+   */
+  private function checkOverriddenValue(array &$element, string $envVariable): void {
+    $envValue = getenv($envVariable);
+    if ($envValue && $element['#default_value'] !== $envValue) {
+      $element['#description'] .= '<br/>' . $this->t(
+        'The value is overridden by the environment variable <code>@variable=@value</code>.', [
+          '@variable' => $envVariable,
+          '@value' => $envValue,
+        ]
+      );
+    }
   }
 
 }
