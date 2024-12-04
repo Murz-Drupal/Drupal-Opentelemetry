@@ -15,6 +15,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class OpenTelemetryTestController extends ControllerBase {
 
+  const TEST_OPENTELEMETRY_ENDPOINT_ENV = 'DRUPAL_OPENTELEMETRY_ENDPOINT';
+
   /**
    * The OpenTelemetry service.
    *
@@ -73,12 +75,10 @@ class OpenTelemetryTestController extends ControllerBase {
    * Sets the test configuration.
    */
   public static function setTestConfiguration() {
-    $config = \Drupal::configFactory()->getEditable(OpentelemetryService::SETTINGS_KEY);
-    $endpoint = getenv('DRUPAL_OPENTELEMETRY_ENDPOINT') ?? 'http://localhost:4318';
-    if ($endpoint) {
-      $config->set(OpentelemetryService::SETTING_ENDPOINT, $endpoint);
-    }
-    $config->save();
+    $testEndpoint = getenv(self::TEST_OPENTELEMETRY_ENDPOINT_ENV) ?? 'http://localhost:4318';
+    \Drupal::configFactory()->getEditable(OpentelemetryService::SETTINGS_KEY)
+      ->set(OpentelemetryService::SETTING_ENDPOINT, $testEndpoint)
+      ->save();
   }
 
 }

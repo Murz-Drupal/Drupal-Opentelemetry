@@ -10,8 +10,8 @@ use Drupal\Core\Logger\RfcLoggerTrait;
 use Drupal\opentelemetry\OpentelemetryService;
 use OpenTelemetry\API\Common\Time\ClockInterface;
 use OpenTelemetry\API\Logs\EventLoggerInterface;
-use OpenTelemetry\API\Logs\LogRecord;
 use OpenTelemetry\API\Logs\LoggerInterface;
+use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\SDK\Logs\EventLogger;
 use OpenTelemetry\SDK\Logs\LoggerProviderInterface;
 use Psr\Log\LogLevel;
@@ -96,17 +96,14 @@ class OpentelemetryLogs implements PsrLogLoggerInterface, EventSubscriberInterfa
     $message_placeholders = $this->parser->parseMessagePlaceholders($message, $context);
     $message = empty($message_placeholders) ? $message : strtr($message, $message_placeholders);
 
-    $recordData = $context + [
+    $payload = $context + [
       'message' => $message,
       'base_url' => $base_url,
     ];
 
-    $record = new LogRecord($recordData);
-    $record
-      ->setSeverityNumber($level)
-      ->setSeverityText($this->getRfcLogLevelAsString($level));
+    $severity = Severity::fromPsr3($this->getRfcLogLevelAsString($level));
 
-    $this->eventLogger->emit($this->eventName, $record);
+    $this->eventLogger->emit($this->eventName, $payload, NULL, NULL, $severity);
   }
 
   /**

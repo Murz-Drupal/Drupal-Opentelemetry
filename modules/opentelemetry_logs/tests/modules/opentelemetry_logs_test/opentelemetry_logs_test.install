@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for the module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\opentelemetry_test\Controller\OpenTelemetryTestController;
+
+/**
+ * Implements hook_install().
+ *
+ * Deploys a configuration from environment variables.
+ */
+function opentelemetry_logs_test_install() {
+  OpenTelemetryTestController::setTestConfiguration();
+}

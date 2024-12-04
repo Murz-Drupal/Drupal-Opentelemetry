@@ -2,3 +2,4 @@ opentelemetry
 ndjson
 ddev
 OTELCOL
+kvlist

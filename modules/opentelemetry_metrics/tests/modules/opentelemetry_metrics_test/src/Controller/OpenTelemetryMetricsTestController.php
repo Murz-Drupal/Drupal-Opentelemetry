@@ -50,8 +50,11 @@ class OpenTelemetryMetricsTestController extends ControllerBase {
     }
     $counter2->add(42);
 
-    $output = ['#markup' => self::class . '::' . __FUNCTION__];
-    return $output;
+    return [
+      '#markup' => self::class . '::' . __FUNCTION__,
+      '#cache' => ['max-age' => 0],
+    ];
+    ;
   }
 
 }

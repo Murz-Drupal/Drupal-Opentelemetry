@@ -1,0 +1,6 @@
+opentelemetry_metrics_test.metrics:
+  path: '/opentelemetry-logs-test/logs'
+  defaults:
+    _controller: 'Drupal\opentelemetry_logs_test\Controller\OpenTelemetryLogsTestController'
+  requirements:
+    _access: 'TRUE'

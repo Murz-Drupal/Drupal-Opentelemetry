@@ -221,6 +221,26 @@ module.exports = class OtelLogWatcher {
     this.expectResourceItem(resourceItem);
   }
 
+  expectLogResourceItem(logRecords, scopeName, callback) {
+    const resourceItem = {
+      type: 'resourceLogs',
+      item: {
+        scopeLogs: [
+          {
+            scope: {
+              name: scopeName,
+            },
+            logRecords,
+          },
+        ],
+      },
+    };
+    if (callback) {
+      resourceItem.callback = callback;
+    }
+    this.expectResourceItem(resourceItem);
+  }
+
   checkAllItemsFound(browser) {
     browser.pause(logsWaitTime).perform(() => {
       this.stop();

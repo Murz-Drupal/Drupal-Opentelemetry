@@ -1,0 +1,8 @@
+name: OpenTelemetry Logs Test
+type: module
+description: OpenTelemetry Logs helper module used for tests.
+package: Testing
+core_version_requirement: ^10 || ^11
+dependencies:
+  - opentelemetry:opentelemetry_logs
+  - opentelemetry:opentelemetry_test

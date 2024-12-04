@@ -83,8 +83,10 @@ module.exports = class LogWatcher extends events.EventEmitter {
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
-      this.stream.close();
-      this.stream = null;
+      if (this.stream) {
+        this.stream.close();
+        this.stream = null;
+      }
       if (this.stopWatchingTimeout) {
         clearTimeout(this.stopWatchingTimeout);
       }
