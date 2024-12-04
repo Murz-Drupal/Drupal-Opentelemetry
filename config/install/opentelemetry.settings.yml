@@ -5,5 +5,7 @@ otel_exporter_otlp_protocol: http/protobuf
 service_name: Drupal
 debug_mode: false
 logger_deduplication: true
-span_plugins_enabled: []
+span_plugins_enabled:
+  request: request
+  exception: exception
 log_requests: false
