@@ -37,6 +37,12 @@ module.exports = {
                         stringValue: 'opentelemetry_logs_test',
                       },
                     },
+                    {
+                      key: 'message',
+                      value: {
+                        stringValue: 'Foo',
+                      },
+                    },
                   ],
                 },
               },
@@ -55,6 +61,12 @@ module.exports = {
                       key: 'key2',
                       value: {
                         stringValue: 'value2',
+                      },
+                    },
+                    {
+                      key: 'message',
+                      value: {
+                        stringValue: 'Error',
                       },
                     },
                   ],
