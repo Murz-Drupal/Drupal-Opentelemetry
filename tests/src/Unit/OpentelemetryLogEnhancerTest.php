@@ -71,6 +71,12 @@ class OpentelemetryLogEnhancerTest extends UnitTestCase {
       '_context' => ['%count' => 2],
     ];
 
+    $service->log(RfcLogLevel::ERROR, 'Export failure', ['exception' => new \Exception('Export failure exception')]);
+    $expected[] = $skeleton + [
+      'message' => 'Export failure: @message in line %line of %file. <pre>@backtrace_string</pre>',
+      'severity' => RfcLogLevel::WARNING,
+    ];
+
     $service->log(RfcLogLevel::NOTICE, 'Foo');
     $expectedLater[] = $skeleton + [
       'message' => 'Foo',

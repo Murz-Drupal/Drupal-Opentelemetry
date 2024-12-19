@@ -3,6 +3,7 @@
 namespace Drupal\opentelemetry;
 
 use Drupal\Core\Config\ImmutableConfig;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Logger\RfcLoggerTrait;
 use Psr\Log\LoggerInterface;
 
@@ -53,8 +54,9 @@ trait OpentelemetryLogEnhancerTrait {
         $context['@backtrace_string'] = $exception->getTraceAsString();
 
         if ($this->settings->get(OpentelemetryService::SETTING_ENDPOINT) === '') {
+          $level = RfcLogLevel::WARNING;
           $context['%endpoint'] = OpentelemetryService::SETTING_ENDPOINT_FALLBACK;
-          $message = "Fallback OpenTelemetry endpoint %endpoint is not available. Please set the custom endpoint in the module settings. Parent exception:" . $message;
+          $message = "Fallback OpenTelemetry endpoint %endpoint is not available. Please set the custom endpoint in the module settings. Parent exception: " . $message;
         }
 
         $messageInfoTemplate = "$message: @message in line %line of %file";
