@@ -79,7 +79,7 @@ class SettingsForm extends ConfigFormBase {
       '#title' => $this->getSettingLabel(OpentelemetryService::SETTING_ENDPOINT),
       '#description' => $this->t(
         'URL to the OpenTelemetry endpoint. Example for a local OpenTelemetry collector using OTLP HTTP protocol: <code>@example</code>', [
-          '@example' => 'http://localhost:4318',
+          '@example' => OpentelemetryService::SETTING_ENDPOINT_FALLBACK,
         ]
       ),
       '#default_value' => $settings->get(OpentelemetryService::SETTING_ENDPOINT),

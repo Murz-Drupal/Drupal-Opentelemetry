@@ -1,4 +1,4 @@
-endpoint: http://localhost:4318
+endpoint: ''
 disable: false
 authorization: ''
 otel_exporter_otlp_protocol: http/protobuf

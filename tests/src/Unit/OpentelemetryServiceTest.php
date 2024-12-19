@@ -212,16 +212,16 @@ class OpentelemetryServiceTest extends UnitTestCase {
    */
   private function initTracerService() {
     $request = new Request();
+    TestHelpers::getContainer()->setParameter('hook_implementations_map', []);
     TestHelpers::service('request_stack')->push($request);
     TestHelpers::service('logger.channel.opentelemetry', (new LoggerChannelFactoryStub())->get('opentelemetry'));
     TestHelpers::service('opentelemetry.transport.factory.provider', initService: TRUE);
     TestHelpers::service('opentelemetry.traces.transport.factory', \Drupal::service('opentelemetry.transport.factory.provider')->get(OpentelemetryTransportFactoryProvider::DATA_TYPE_TRACES));
-    TestHelpers::service('opentelemetry.span.exporter.factory', initService: TRUE);
-    TestHelpers::service('opentelemetry.logger_proxy', initService: TRUE);
+    $spanExporterFactory = TestHelpers::service('opentelemetry.span.exporter.factory', initService: TRUE);
     TestHelpers::service('plugin.manager.opentelemetry_trace', initService: TRUE);
     TestHelpers::service('opentelemetry.sampler.factory', initService: TRUE);
 
-    $spanExporter = TestHelpers::service('opentelemetry.span.exporter.factory')->create();
+    $spanExporter = $spanExporterFactory->create();
     $spanProcessor = new BatchSpanProcessor($spanExporter, Clock::getDefault());
     $sampler = TestHelpers::service('opentelemetry.sampler.factory')->create();
     $tracerProvider = new TracerProvider($spanProcessor, $sampler);

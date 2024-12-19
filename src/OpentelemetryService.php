@@ -18,6 +18,7 @@ use OpenTelemetry\Context\ScopeInterface;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues;
 use OpenTelemetry\SDK\Trace\Span;
 use OpenTelemetry\SemConv\TraceAttributes;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -91,6 +92,11 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   const SETTING_DISABLE = 'disable';
 
   /**
+   * A fallback endpoint url.
+   */
+  const SETTING_ENDPOINT_FALLBACK = 'http://localhost:4318';
+
+  /**
    * A fallback content type for the endpoint.
    */
   const OTEL_EXPORTER_OTLP_PROTOCOL_FALLBACK = KnownValues::VALUE_HTTP_PROTOBUF;
@@ -127,6 +133,13 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
   protected ImmutableConfig $settings;
 
   /**
+   * A custom logger with deduplicating repeated entries.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected LoggerInterface $logger;
+
+  /**
    * The OpenTelemetry Tracer.
    *
    * @var \OpenTelemetry\API\Trace\TracerInterface
@@ -142,23 +155,20 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    *   The tracer name.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   A config factory.
-   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $systemLogger
    *   A logger.
    * @param \Drupal\opentelemetry\OpentelemetryTraceManager $opentelemetryTraceManager
    *   The OpenTelemetry Trace Manager.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The Request Stack.
-   * @param \Drupal\opentelemetry\OpentelemetryLoggerProxy $opentelemetryLoggerProxy
-   *   The OpentelemetryLoggerProxy.
    */
   public function __construct(
     protected TracerProviderInterface $tracerProvider,
     protected string $tracerName,
     protected ConfigFactoryInterface $configFactory,
-    protected LoggerChannelInterface $logger,
+    protected LoggerChannelInterface $systemLogger,
     protected OpentelemetryTraceManager $opentelemetryTraceManager,
     protected RequestStack $requestStack,
-    protected OpentelemetryLoggerProxy $opentelemetryLoggerProxy,
   ) {
     $this->settings = $this->configFactory->get(self::SETTINGS_KEY);
 
@@ -167,13 +177,20 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
       return;
     }
 
-    // Attaching the Drupal logger to the tracer.
-    if ($this->settings->get(self::SETTING_LOGGER_DEDUPLICATION) ?? TRUE) {
-      LoggerHolder::set($opentelemetryLoggerProxy);
+    if ($this->settings->get(OpentelemetryService::SETTING_LOGGER_DEDUPLICATION)) {
+      // A workaround to keep support for Drupal 9.
+      // @todo Remove when dropping Drupal 9 support.
+      if (version_compare(\Drupal::VERSION, '10.0.0') <= 0) {
+        $this->logger = new OpentelemetryLogEnhancerD9($this->systemLogger, $this->settings);
+      }
+      else {
+        $this->logger = new OpentelemetryLogEnhancer($this->systemLogger, $this->settings);
+      }
     }
     else {
-      LoggerHolder::set($this->logger);
+      $this->logger = $this->systemLogger;
     }
+    LoggerHolder::set($this->logger);
 
     $this->tracer = $this->tracerProvider->getTracer($this->tracerName);
     $this->initRootSpan();
@@ -332,6 +349,7 @@ class OpentelemetryService implements OpentelemetryServiceInterface, EventSubscr
    *   A TerminateEvent.
    */
   public function onTerminate(TerminateEvent $event) {
+    $this->logger->onTerminate();
     if (!isset($this->rootScope) || empty($this->rootScope)) {
       return;
     }

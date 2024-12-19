@@ -1,7 +1,7 @@
 name: OpenTelemetry Syslog
 type: module
 description: Provides syslog logger with trace id.
-core_version_requirement: ^9 || ^10
+core_version_requirement: ^9 || ^10 || ^11
 package: Logging
 configure: opentelemetry_syslog.settings
 dependencies:

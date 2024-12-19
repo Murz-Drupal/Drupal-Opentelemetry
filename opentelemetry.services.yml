@@ -16,7 +16,6 @@ services:
       - '@logger.channel.opentelemetry'
       - '@plugin.manager.opentelemetry_trace'
       - '@request_stack'
-      - '@opentelemetry.logger_proxy'
     tags:
       - name: event_subscriber
       - name: drush.command
@@ -45,7 +44,7 @@ services:
   opentelemetry.clock:
     class: OpenTelemetry\SDK\Common\Time\ClockInterface
     factory:
-      - 'OpenTelemetry\SDK\Common\Time\ClockFactory'
+      - 'OpenTelemetry\API\Common\Time\Clock'
       - 'getDefault'
 
   opentelemetry.traces.transport.factory:
@@ -94,12 +93,5 @@ services:
   Drupal\opentelemetry\EventSubscriber\DatabaseStatementTraceEventSubscriber:
     arguments:
       - '@opentelemetry'
-    tags:
-      - name: event_subscriber
-
-  opentelemetry.logger_proxy:
-    class: Drupal\opentelemetry\OpentelemetryLoggerProxy
-    arguments:
-      - '@logger.channel.opentelemetry'
     tags:
       - name: event_subscriber

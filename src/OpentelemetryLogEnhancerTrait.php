@@ -2,25 +2,15 @@
 
 namespace Drupal\opentelemetry;
 
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Logger\RfcLoggerTrait;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\KernelEvents;
-
-// A workaround to make the logger compatible with Drupal 9.x and 10.x together.
-if (version_compare(\Drupal::VERSION, '10.0.0') <= 0) {
-  require_once __DIR__ . '/OpentelemetryLoggerProxyTrait.D9.inc';
-}
-else {
-  require_once __DIR__ . '/OpentelemetryLoggerProxyTrait.D10.inc';
-}
 
 /**
  * A custom logger shim to catch an suppress repeating errors.
  */
-class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterface {
+trait OpentelemetryLogEnhancerTrait {
   use RfcLoggerTrait;
-  use OpentelemetryLoggerProxyTrait;
 
   /**
    * Storage for repeatable errors.
@@ -41,6 +31,7 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
    */
   public function __construct(
     protected LoggerInterface $systemLogger,
+    protected ImmutableConfig $settings,
   ) {
   }
 
@@ -60,6 +51,12 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
         $context['%file'] = $exception->getFile();
         $context['%line'] = $exception->getLine();
         $context['@backtrace_string'] = $exception->getTraceAsString();
+
+        if ($this->settings->get(OpentelemetryService::SETTING_ENDPOINT) === '') {
+          $context['%endpoint'] = OpentelemetryService::SETTING_ENDPOINT_FALLBACK;
+          $message = "Fallback OpenTelemetry endpoint %endpoint is not available. Please set the custom endpoint in the module settings. Parent exception:" . $message;
+        }
+
         $messageInfoTemplate = "$message: @message in line %line of %file";
         $backtraceTemplate = "<pre>@backtrace_string</pre>";
         $message = "$messageInfoTemplate. $backtraceTemplate";
@@ -115,14 +112,17 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
     $logItem['level'] = $level;
     $logItem['message'] = $message;
     $logItem['context'] = $context;
-    $this->repeatableErrors[$messageHash] = $logItem;
-    if (
-      $logItem['count'] == 1
-      || $logItem['count'] == $this->chunkSize
-    ) {
+    if ($logItem['count'] == 1) {
+      // Log the first occurrence.
       $this->doLogWithCount($logItem);
+    }
+    if ($logItem['count'] >= $this->chunkSize) {
+      // Log the chunked occurrence.
+      $this->doLogWithCount($logItem);
+      // Reset count.
       $logItem['count'] = 0;
     }
+    $this->repeatableErrors[$messageHash] = $logItem;
   }
 
   /**
@@ -132,25 +132,16 @@ class OpentelemetryLoggerProxy implements LoggerInterface, EventSubscriberInterf
    *   An array with a log item.
    */
   private function doLogWithCount(array $logItem) {
-    if ($logItem['count'] > 2) {
-      $logItem['count']--;
+    $duplicatesCount = $logItem['count'] - 1;
+    if ($duplicatesCount > 1) {
       $logItem['message'] .= " (repeated %count times)";
-      $logItem['context']['%count'] = $logItem['count'];
+      $logItem['context']['%count'] = $duplicatesCount;
     }
     $this->systemLogger->log(
       $logItem['level'],
       $logItem['message'],
       $logItem['context'],
     );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getSubscribedEvents(): array {
-    return [
-      KernelEvents::TERMINATE => ['onTerminate', 90],
-    ];
   }
 
   /**
