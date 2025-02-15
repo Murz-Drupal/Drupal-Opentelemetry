@@ -54,21 +54,24 @@ trait OpentelemetryLogEnhancerTrait {
         $context['@backtrace_string'] = $exception->getTraceAsString();
 
         if ($this->settings->get(OpentelemetryService::SETTING_ENDPOINT) === '') {
+          // Making a warning instead of the exception for the default
+          //configuration when the endpoint is not set.
           $level = RfcLogLevel::WARNING;
           $context['%endpoint'] = OpentelemetryService::SETTING_ENDPOINT_FALLBACK;
           $message = "Fallback OpenTelemetry endpoint %endpoint is not available. Please set the custom endpoint in the module settings. Parent exception: " . $message;
         }
+        else {
 
-        $messageInfoTemplate = "$message: @message in line %line of %file";
-        $backtraceTemplate = "<pre>@backtrace_string</pre>";
-        $message = "$messageInfoTemplate. $backtraceTemplate";
+          $messageInfoTemplate = "$message: @message in line %line of %file";
+          $backtraceTemplate = "<pre>@backtrace_string</pre>";
+          $message = "$messageInfoTemplate. $backtraceTemplate";
 
-        $exceptionPrevious = $exception->getPrevious();
-        if ($exceptionPrevious) {
-          $context['@message_previous'] = $exceptionPrevious->getMessage();
-          $message = "$messageInfoTemplate (previous exception message: @message_previous). $backtraceTemplate";
+          $exceptionPrevious = $exception->getPrevious();
+          if ($exceptionPrevious) {
+            $context['@message_previous'] = $exceptionPrevious->getMessage();
+            $message = "$messageInfoTemplate (previous exception message: @message_previous). $backtraceTemplate";
+          }
         }
-
         break;
 
       case 'Unhandled export error':
